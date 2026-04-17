@@ -5,6 +5,7 @@
 # - 2026-04-04: Workflow Run Endpunkt fuer Frontend Start und verbesserte Fehlerantworten erweitert. author Marcus Schlieper
 # - 2026-04-11: Tools Endpunkt fuer Frontend Tool Registry aus JSON Datei ergaenzt. author Marcus Schlieper
 # author Marcus Schlieper
+# venv aktivieren:  .\.venv\Scripts\Activate.ps1 
 
 from functools import wraps
 from pathlib import Path

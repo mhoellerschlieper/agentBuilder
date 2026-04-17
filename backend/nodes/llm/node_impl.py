@@ -7,7 +7,7 @@ import copy
 import json
 from typing import Any, Dict, List
 
-from LLM import llmTextGen
+from tools.LLM import llmTextGen
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import replace_input_placeholders
