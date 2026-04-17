@@ -1,0 +1,4718 @@
+﻿export_generated_at: 2026-04-13 07:23:51
+root_path: C:\xampp\htdocs\expchat\agentBuilder\frontend
+file_count: 13
+
+================================================================
+file: src/components/nodes/classifier_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/classifier_node.tsx */
+/* description: Darstellung des Classifier Nodes mit LLM aehnlicher Bedienung und Switch aehnlichen Klassen Ausgaengen. */
+/* history: */
+/* - 2026-04-12: Erstellt fuer Classifier Node mit Prompt, Model und Klassen Ausgaengen. author Marcus Schlieper */
+/* author Marcus Schlieper */
+
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_label_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderActionHandles,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+type TClassifierClassItem = {
+  s_id?: string;
+  s_label?: string;
+  s_description?: string;
+};
+
+type TClassifierNodeData = Record<string, unknown> & {
+  s_label?: string;
+  s_provider?: string;
+  s_model_name?: string;
+  d_temperature?: number;
+  s_system_prompt?: string;
+  s_prompt?: string;
+  classes?: TClassifierClassItem[];
+  input_handles?: THandleDefinition[];
+  output_handles?: THandleDefinition[];
+};
+
+const a_model_options: string[] = [
+  "gpt-5.4",
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4.1-nano",
+  "gpt-4o",
+  "gpt-4o-mini",
+  "o4-mini",
+  "o3",
+  "o3-mini",
+];
+
+function create_class_id(): string {
+  return "class_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
+}
+
+function get_item_box_style(): React.CSSProperties {
+  return {
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    padding: "10px",
+    backgroundColor: "#f8fafc",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  };
+}
+
+function get_button_row_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  };
+}
+
+function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties {
+  return {
+    border: "1px solid " + (s_variant === "danger" ? "#dc2626" : "#2563eb"),
+    borderRadius: "10px",
+    padding: "8px 10px",
+    backgroundColor: s_variant === "danger" ? "#fef2f2" : "#eff6ff",
+    color: s_variant === "danger" ? "#b91c1c" : "#1d4ed8",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+  };
+}
+
+function build_output_handles(
+  a_classes: TClassifierClassItem[],
+): THandleDefinition[] {
+  const a_class_handles: THandleDefinition[] = a_classes.map((o_class, i_index) => {
+    const s_label =
+      typeof o_class.s_label === "string" && o_class.s_label.trim() !== ""
+        ? o_class.s_label.trim()
+        : "class_" + String(i_index + 1);
+
+    return {
+      s_key: "class_" + String(i_index + 1),
+      s_label,
+      s_description: "Ausgang fuer Klasse " + s_label,
+    };
+  });
+
+  a_class_handles.push({
+    s_key: "default",
+    s_label: "default",
+    s_description: "Fallback Ausgang",
+  });
+
+  a_class_handles.push({
+    s_key: "output_main",
+    s_label: "Ergebnis",
+    s_description: "Classifier Ergebnis",
+  });
+
+  return a_class_handles;
+}
+
+export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as TClassifierNodeData) || ({} as TClassifierNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const a_classes = Array.isArray(o_data.classes) ? o_data.classes : [];
+
+  const a_input_handles = get_safe_handle_definitions(
+    o_data.input_handles,
+    [
+      {
+        s_key: "input_main",
+        s_label: "Eingabe",
+        s_description: "Text oder Daten fuer Klassifikation",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_output_handles = get_safe_handle_definitions(
+    o_data.output_handles,
+    build_output_handles(a_classes),
+  );
+
+  const s_provider =
+    typeof o_data.s_provider === "string" && o_data.s_provider.trim() !== ""
+      ? o_data.s_provider
+      : "openai";
+
+  const s_model_name =
+    typeof o_data.s_model_name === "string" ? o_data.s_model_name : "";
+
+  const d_temperature =
+    typeof o_data.d_temperature === "number" && Number.isFinite(o_data.d_temperature)
+      ? o_data.d_temperature
+      : 0;
+
+  const s_system_prompt =
+    typeof o_data.s_system_prompt === "string" ? o_data.s_system_prompt : "";
+
+  const s_prompt =
+    typeof o_data.s_prompt === "string" ? o_data.s_prompt : "";
+
+  function sync_classes(a_next_classes: TClassifierClassItem[]): void {
+    update_node_data(id, {
+      classes: a_next_classes,
+      output_handles: build_output_handles(a_next_classes),
+    });
+  }
+
+  function on_add_class(): void {
+    const a_next_classes = [
+      ...a_classes,
+      {
+        s_id: create_class_id(),
+        s_label: "",
+        s_description: "",
+      },
+    ];
+    sync_classes(a_next_classes);
+  }
+
+  function on_delete_class(i_index: number): void {
+    if (i_index < 0 || i_index >= a_classes.length) {
+      return;
+    }
+    const a_next_classes = a_classes.filter(
+      (_o_item, i_current_index) => i_current_index !== i_index,
+    );
+    sync_classes(a_next_classes);
+  }
+
+  function on_update_class(
+    i_index: number,
+    o_patch: Partial<TClassifierClassItem>,
+  ): void {
+    const a_next_classes = [...a_classes];
+    const o_current =
+      a_next_classes[i_index] && typeof a_next_classes[i_index] === "object"
+        ? { ...a_next_classes[i_index] }
+        : { s_id: create_class_id() };
+
+    a_next_classes[i_index] = {
+      ...o_current,
+      ...o_patch,
+      s_id:
+        typeof o_current.s_id === "string" && o_current.s_id.trim() !== ""
+          ? o_current.s_id
+          : create_class_id(),
+    };
+    sync_classes(a_next_classes);
+  }
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+      <RenderActionHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div
+        style={get_node_header_style(
+          "rgba(168, 85, 247, 0.18)",
+          "rgba(168, 85, 247, 0.34)",
+        )}
+      >
+        <NodeHeaderTitle
+          s_kind="classifier"
+          s_title={typeof o_data.s_label === "string" && o_data.s_label.trim() !== "" ? o_data.s_label : "Classifier"}
+          s_subtitle="LLM based classification"
+        />
+        <NodeDeleteButton s_node_id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          provider {s_provider} - {a_classes.length} classes
+        </div>
+
+        <NodeDetailsSection
+          s_title="Classifier settings"
+          s_meta="collapsed"
+          b_default_open={false}
+        >
+          <label style={get_label_style()}>
+            provider
+            <select
+              value={s_provider}
+              onChange={(o_event) => {
+                update_node_data(id, { s_provider: o_event.target.value });
+              }}
+              style={get_input_style()}
+            >
+              <option value="openai">openai</option>
+              <option value="endpoint">endpoint</option>
+            </select>
+          </label>
+
+          <label style={get_label_style()}>
+            model_name
+            <select
+              value={s_model_name}
+              onChange={(o_event) => {
+                update_node_data(id, { s_model_name: o_event.target.value });
+              }}
+              style={get_input_style()}
+            >
+              <option value="">not_set</option>
+              {a_model_options.map((s_item) => (
+                <option key={s_item} value={s_item}>
+                  {s_item}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={get_label_style()}>
+            temperature
+            <input
+              type="number"
+              step="0.1"
+              value={String(d_temperature)}
+              onChange={(o_event) => {
+                const d_value = Number(o_event.target.value);
+                update_node_data(id, {
+                  d_temperature: Number.isFinite(d_value) ? d_value : 0,
+                });
+              }}
+              style={get_input_style()}
+            />
+          </label>
+
+          <label style={get_label_style()}>
+            system_prompt
+            <textarea
+              value={s_system_prompt}
+              onChange={(o_event) => {
+                update_node_data(id, { s_system_prompt: o_event.target.value });
+              }}
+              rows={3}
+              style={get_input_style()}
+            />
+          </label>
+
+          <label style={get_label_style()}>
+            prompt
+            <textarea
+              value={s_prompt}
+              onChange={(o_event) => {
+                update_node_data(id, { s_prompt: o_event.target.value });
+              }}
+              rows={4}
+              style={get_input_style()}
+            />
+          </label>
+        </NodeDetailsSection>
+
+        <NodeDetailsSection
+          s_title="Classes"
+          s_meta={String(a_classes.length) + " outputs"}
+          b_default_open={false}
+        >
+          {a_classes.length === 0 ? (
+            <div style={get_meta_style()}>No classes</div>
+          ) : (
+            a_classes.map((o_class, i_index) => {
+              const s_class_label =
+                typeof o_class.s_label === "string" ? o_class.s_label : "";
+              const s_class_description =
+                typeof o_class.s_description === "string"
+                  ? o_class.s_description
+                  : "";
+
+              return (
+                <div key={o_class.s_id || "class_" + String(i_index)} style={get_item_box_style()}>
+                  <label style={get_label_style()}>
+                    class_label
+                    <input
+                      value={s_class_label}
+                      onChange={(o_event) => {
+                        on_update_class(i_index, {
+                          s_label: o_event.target.value,
+                        });
+                      }}
+                      style={get_input_style()}
+                    />
+                  </label>
+
+                  <label style={get_label_style()}>
+                    class_description
+                    <input
+                      value={s_class_description}
+                      onChange={(o_event) => {
+                        on_update_class(i_index, {
+                          s_description: o_event.target.value,
+                        });
+                      }}
+                      style={get_input_style()}
+                    />
+                  </label>
+
+                  <div style={get_meta_style()}>
+                    output handle: class_{String(i_index + 1)}
+                  </div>
+
+                  <div style={get_button_row_style()}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        on_delete_class(i_index);
+                      }}
+                      style={get_button_style("danger")}
+                    >
+                      Delete Class
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          <div style={get_button_row_style()}>
+            <button
+              type="button"
+              onClick={() => {
+                on_add_class();
+              }}
+              style={get_button_style("primary")}
+            >
+              Add Class
+            </button>
+          </div>
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/code_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/code_node.tsx
+description: Darstellung des Python Code Nodes mit kompaktem Design,
+sichtbaren Handles und aufklappbaren Details.
+history:
+- 2026-04-03: Erstellt fuer Python Code Node mit beliebig vielen Eingaben und Ausgaben. author Marcus Schlieper
+- 2026-04-03: Dynamische Eingangs Handles fuer Inputs und Ausgangs Handles fuer Outputs ergaenzt. author Marcus Schlieper
+- 2026-04-03: Zentrale einheitliche Handle Styles integriert. author Marcus Schlieper
+- 2026-04-06: Auf input_handles und output_handles mit Rueckwaertskompatibilitaet erweitert. author Marcus Schlieper
+- 2026-04-06: Sichtbare kopierbare Handle Labels und Runtime Ergebnisanzeige ergaenzt. author Marcus Schlieper
+- 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { ICodeNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_label_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+function get_item_box_style(): React.CSSProperties {
+  return {
+    position: "relative",
+    border: "1px solid #e5e7eb",
+    borderRadius: "10px",
+    padding: "8px 12px",
+    backgroundColor: "#f8fafc",
+    marginBottom: "8px",
+  };
+}
+
+function get_empty_style(): React.CSSProperties {
+  return {
+    fontSize: "12px",
+    color: "#6b7280",
+    fontStyle: "italic",
+  };
+}
+
+function get_code_style(): React.CSSProperties {
+  return {
+    border: "1px solid #334155",
+    borderRadius: "10px",
+    padding: "10px",
+    backgroundColor: "#0f172a",
+    color: "#e5e7eb",
+    fontFamily: "monospace",
+    fontSize: "12px",
+    whiteSpace: "pre-wrap",
+    minHeight: "120px",
+  };
+}
+
+export function CodeNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as ICodeNodeData) || ({} as ICodeNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const a_legacy_inputs = Array.isArray((o_data as Record<string, unknown>).inputs)
+    ? ((((o_data as Record<string, unknown>).inputs as unknown[]) || []))
+    : [];
+
+  const a_legacy_outputs = Array.isArray((o_data as Record<string, unknown>).outputs)
+    ? ((((o_data as Record<string, unknown>).outputs as unknown[]) || []))
+    : [];
+
+  const a_input_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).input_handles,
+    [
+      {
+        s_key: "input_main",
+        s_label: "Daten",
+        s_description: "Hauptdaten fuer den Code",
+      },
+      {
+        s_key: "input_config",
+        s_label: "Konfiguration",
+        s_description: "Optionale Einstellungen",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_output_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).output_handles,
+    [
+      {
+        s_key: "output_main",
+        s_label: "Ergebnis",
+        s_description: "Ergebnis des Codes",
+      },
+      {
+        s_key: "output_error",
+        s_label: "Fehler",
+        s_description: "Fehlerausgang",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const s_python_code =
+    typeof (o_data as Record<string, unknown>).s_python_code === "string"
+      ? ((o_data as Record<string, unknown>).s_python_code as string)
+      : "";
+
+  const s_code_preview =
+    s_python_code.trim() !== "" ? s_python_code.trim().slice(0, 24) : "No code";
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div style={get_node_header_style("rgba(226, 232, 240, 0.92)", "#cbd5e1")}>
+        <NodeHeaderTitle
+          s_kind="code"
+          s_title="Python Code"
+          s_subtitle={s_code_preview}
+        />
+        <NodeDeleteButton id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          {a_input_handles.length} inputs - {a_output_handles.length} outputs
+        </div>
+
+        <NodeDetailsSection
+          s_title="Code"
+          s_meta="edit"
+          b_default_open={false}
+        >
+          <textarea
+            value={s_python_code}
+            onChange={(o_event) => {
+              update_node_data(id, { s_python_code: o_event.target.value });
+            }}
+            rows={8}
+            spellCheck={false}
+            style={{ ...get_input_style(), ...get_code_style() }}
+          />
+        </NodeDetailsSection>
+
+        <NodeDetailsSection
+          s_title="Inputs"
+          s_meta={String(a_input_handles.length)}
+          b_default_open={false}
+        >
+          {a_input_handles.length === 0 ? (
+            <div style={get_empty_style()}>No inputs</div>
+          ) : (
+            a_input_handles.map((o_item, i_index) => (
+              <div key={String(o_item.s_key || i_index)} style={get_item_box_style()}>
+                <div style={get_label_style()}>
+                  {o_item.s_label || o_item.s_key || "input" + String(i_index + 1)}
+                </div>
+                <div style={get_meta_style()}>
+                  {(o_item.s_key || "input_" + String(i_index + 1)) +
+                    " | " +
+                    (o_item.s_description || "-")}
+                </div>
+              </div>
+            ))
+          )}
+        </NodeDetailsSection>
+
+        <NodeDetailsSection
+          s_title="Outputs"
+          s_meta={String(a_output_handles.length)}
+          b_default_open={false}
+        >
+          {a_output_handles.length === 0 ? (
+            <div style={get_empty_style()}>No outputs</div>
+          ) : (
+            a_output_handles.map((o_item, i_index) => (
+              <div key={String(o_item.s_key || i_index)} style={get_item_box_style()}>
+                <div style={get_label_style()}>
+                  {o_item.s_label || o_item.s_key || "output" + String(i_index + 1)}
+                </div>
+                <div style={get_meta_style()}>
+                  {(o_item.s_key || "output_" + String(i_index + 1)) +
+                    " | " +
+                    (o_item.s_description || "-")}
+                </div>
+              </div>
+            ))
+          )}
+        </NodeDetailsSection>
+
+        <NodeDetailsSection
+          s_title="Legacy"
+          s_meta={String(a_legacy_inputs.length + a_legacy_outputs.length)}
+          b_default_open={false}
+        >
+          <div style={get_meta_style()}>
+            {a_legacy_inputs.length} legacy inputs - {a_legacy_outputs.length} legacy outputs
+          </div>
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/comment_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/comment_node.tsx
+description: Kommentar Node fuer das Canvas mit kompaktem Header
+und aufklappbaren Details.
+history:
+- 2026-03-27: Erstellt fuer Kommentarfunktion im Canvas. author Marcus Schlieper
+- 2026-03-27: Erweitert um Inline Eingaben im Node. author Marcus Schlieper
+- 2026-04-11: Details aufklappbar gemacht und Icon Design ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { ICommentNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_label_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+} from "./node_runtime_helpers";
+
+export function CommentNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as ICommentNodeData) || ({} as ICommentNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const s_text =
+    typeof o_data.s_text === "string" ? o_data.s_text : "";
+
+  const s_color =
+    typeof o_data.s_color === "string" && o_data.s_color.trim() !== ""
+      ? o_data.s_color
+      : "#fef08a";
+
+  const s_preview =
+    s_text.trim() !== "" ? s_text.trim().slice(0, 28) : "No text";
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <div style={get_node_header_style("rgba(254, 240, 138, 0.55)", "#fde68a")}>
+        <NodeHeaderTitle
+          s_kind="comment"
+          s_title="Comment"
+          s_subtitle={s_preview}
+        />
+        <NodeDeleteButton id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          Visible on canvas
+        </div>
+
+        <NodeDetailsSection
+          s_title="Details"
+          s_meta="edit"
+          b_default_open={false}
+        >
+          <label style={get_label_style()}>text</label>
+          <textarea
+            value={s_text}
+            onChange={(o_event) =>
+              update_node_data(id, { s_text: o_event.target.value })
+            }
+            rows={4}
+            style={{ ...get_input_style(), resize: "vertical" }}
+          />
+
+          <label style={get_label_style()}>color</label>
+          <input
+            value={s_color}
+            onChange={(o_event) =>
+              update_node_data(id, { s_color: o_event.target.value })
+            }
+            style={get_input_style()}
+          />
+        </NodeDetailsSection>
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/condition_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/condition_node.tsx
+description: Darstellung des Condition Nodes mit kompaktem Design,
+sichtbaren Handles und aufklappbaren Details.
+history:
+- 2026-03-25: Erstellt fuer xyflow Condition Node. author Marcus Schlieper
+- 2026-03-27: Erweitert um Delete Button. author Marcus Schlieper
+- 2026-03-27: Erweitert um Inline Eingaben im Node. author Marcus Schlieper
+- 2026-04-06: Auf input_handles und output_handles mit sicheren Defaults umgestellt. author Marcus Schlieper
+- 2026-04-06: Sichtbare kopierbare Handle Labels und Runtime Ergebnisanzeige ergaenzt. author Marcus Schlieper
+- 2026-04-06: Then und else Ausgaenge sowie Event Handles unten ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-06: Eingabefelder auf if_left, operator, if_right, Add Rule und Delete Rule angepasst. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { IConditionNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_label_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+function create_rule_id(): string {
+  return "rule_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
+}
+
+function get_rule_box_style(): React.CSSProperties {
+  return {
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    padding: "10px",
+    backgroundColor: "#f8fafc",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  };
+}
+
+function get_button_row_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  };
+}
+
+function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties {
+  return {
+    border: "1px solid " + (s_variant === "danger" ? "#dc2626" : "#2563eb"),
+    borderRadius: "10px",
+    padding: "8px 10px",
+    backgroundColor: s_variant === "danger" ? "#fef2f2" : "#eff6ff",
+    color: s_variant === "danger" ? "#b91c1c" : "#1d4ed8",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+  };
+}
+
+export function ConditionNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as IConditionNodeData) || ({} as IConditionNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const a_rules = Array.isArray((o_data as Record<string, unknown>).rules)
+    ? ((((o_data as Record<string, unknown>).rules as unknown[]) || []))
+    : [];
+
+  const a_input_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).input_handles,
+    [
+      {
+        s_key: "input_main",
+        s_label: "Pruefdaten",
+        s_description: "Daten fuer die Bedingung",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_output_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).output_handles,
+    [
+      {
+        s_key: "true",
+        s_label: "true",
+        s_description: "Pfad fuer wahr",
+      },
+      {
+        s_key: "false",
+        s_label: "false",
+        s_description: "Pfad fuer falsch",
+      },
+      {
+        s_key: "output_main",
+        s_label: "Ergebnis",
+        s_description: "Auswertung der Bedingung",
+      },
+    ] as THandleDefinition[],
+  );
+
+  function update_rule_field(i_index: number, s_key: string, value: string): void {
+    const a_next_rules = [...a_rules];
+    const o_rule =
+      a_next_rules[i_index] && typeof a_next_rules[i_index] === "object"
+        ? { ...(a_next_rules[i_index] as Record<string, unknown>) }
+        : {};
+
+    o_rule[s_key] = value;
+
+    if (typeof o_rule.s_id !== "string" || o_rule.s_id.trim() === "") {
+      o_rule.s_id = create_rule_id();
+    }
+
+    a_next_rules[i_index] = o_rule;
+    update_node_data(id, { rules: a_next_rules });
+  }
+
+  function on_add_rule(): void {
+    const a_next_rules = [...a_rules];
+    a_next_rules.push({
+      s_id: create_rule_id(),
+      if_left: "",
+      operator: "equals",
+      if_right: "",
+    });
+    update_node_data(id, { rules: a_next_rules });
+  }
+
+  function on_delete_rule(i_index: number): void {
+    if (i_index < 0 || i_index >= a_rules.length) {
+      return;
+    }
+
+    const a_next_rules = a_rules.filter((_o_item, i_current_index) => i_current_index !== i_index);
+    update_node_data(id, { rules: a_next_rules });
+  }
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div style={get_node_header_style("rgba(254, 243, 199, 0.92)", "#f59e0b")}>
+        <NodeHeaderTitle
+          s_kind="condition"
+          s_title="Condition"
+          s_subtitle={"Rules: " + String(a_rules.length)}
+        />
+        <NodeDeleteButton id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          If - {a_rules.length} rules
+        </div>
+
+        <NodeDetailsSection
+          s_title="Rules"
+          s_meta={String(a_rules.length)}
+          b_default_open={false}
+        >
+          {a_rules.length === 0 ? (
+            <div style={get_meta_style()}>No rules</div>
+          ) : (
+            a_rules.map((o_rule_unknown, i_index) => {
+              const o_rule =
+                o_rule_unknown && typeof o_rule_unknown === "object"
+                  ? (o_rule_unknown as Record<string, unknown>)
+                  : {};
+
+              const s_if_left =
+                typeof o_rule.if_left === "string"
+                  ? o_rule.if_left
+                  : typeof o_rule.s_if_left === "string"
+                    ? (o_rule.s_if_left as string)
+                    : "";
+
+              const s_operator =
+                typeof o_rule.operator === "string"
+                  ? o_rule.operator
+                  : typeof o_rule.s_operator === "string"
+                    ? (o_rule.s_operator as string)
+                    : "equals";
+
+              const s_if_right =
+                typeof o_rule.if_right === "string"
+                  ? o_rule.if_right
+                  : typeof o_rule.s_if_right === "string"
+                    ? (o_rule.s_if_right as string)
+                    : "";
+
+              return (
+                <div key={String(o_rule.s_id || i_index)} style={get_rule_box_style()}>
+                  <label style={get_label_style()}>if_left</label>
+                  <input
+                    value={s_if_left}
+                    onChange={(o_event) => {
+                      update_rule_field(i_index, "if_left", o_event.target.value);
+                    }}
+                    style={get_input_style()}
+                  />
+
+                  <label style={get_label_style()}>operator</label>
+                  <select
+                    value={s_operator}
+                    onChange={(o_event) => {
+                      update_rule_field(i_index, "operator", o_event.target.value);
+                    }}
+                    style={get_input_style()}
+                  >
+                    <option value="equals">equals</option>
+                    <option value="not_equals">not_equals</option>
+                    <option value="greater_than">greater_than</option>
+                    <option value="greater_or_equals">greater_or_equals</option>
+                    <option value="less_than">less_than</option>
+                    <option value="less_or_equals">less_or_equals</option>
+                    <option value="contains">contains</option>
+                    <option value="not_contains">not_contains</option>
+                    <option value="starts_with">starts_with</option>
+                    <option value="ends_with">ends_with</option>
+                    <option value="is_empty">is_empty</option>
+                    <option value="is_not_empty">is_not_empty</option>
+                  </select>
+
+                  <label style={get_label_style()}>if_right</label>
+                  <input
+                    value={s_if_right}
+                    onChange={(o_event) => {
+                      update_rule_field(i_index, "if_right", o_event.target.value);
+                    }}
+                    style={get_input_style()}
+                  />
+
+                  <div style={get_button_row_style()}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        on_delete_rule(i_index);
+                      }}
+                      style={get_button_style("danger")}
+                    >
+                      Delete Rule
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          <div style={get_button_row_style()}>
+            <button
+              type="button"
+              onClick={() => {
+                on_add_rule();
+              }}
+              style={get_button_style("primary")}
+            >
+              Add Rule
+            </button>
+          </div>
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/end_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/end_node.tsx
+description: Darstellung des End Nodes mit kompaktem Design,
+sichtbaren Handles und aufklappbaren Details.
+history:
+- 2026-03-25: Erstellt fuer xyflow End Node. author Marcus Schlieper
+- 2026-03-27: Erweitert um Delete Button. author Marcus Schlieper
+- 2026-03-27: Erweitert um Inline Eingaben im Node. author Marcus Schlieper
+- 2026-04-06: Auf benannte input_handles und output_handles mit sicheren Defaults umgestellt. author Marcus Schlieper
+- 2026-04-06: Sichtbare kopierbare Handle Labels und Runtime Ergebnisanzeige ergaenzt. author Marcus Schlieper
+- 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-07: Query Feld durch Result Feld ersetzt, damit branch spezifische Start Outputs direkt angezeigt werden koennen. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { IEndNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+export function EndNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as IEndNodeData) || ({} as IEndNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const a_legacy_outputs = Array.isArray((o_data as Record<string, unknown>).outputs)
+    ? ((((o_data as Record<string, unknown>).outputs as unknown[]) || []))
+    : [];
+
+  const a_input_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).input_handles,
+    [
+      {
+        s_key: "input_main",
+        s_label: "Endergebnis",
+        s_description: "Abschlussdaten des Workflows",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_output_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).output_handles,
+    [
+      {
+        s_key: "output_main",
+        s_label: "Frontend Ergebnis",
+        s_description: "Ergebnis fuer das Frontend",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const b_success =
+    typeof o_data.b_success === "boolean" ? o_data.b_success : true;
+
+  const s_result =
+    typeof (o_data as Record<string, unknown>).s_result === "string"
+      ? ((o_data as Record<string, unknown>).s_result as string)
+      : typeof o_data.s_query === "string"
+        ? o_data.s_query
+        : "{{input:input_main.value}}";
+
+  const s_preview =
+    s_result.trim() !== "" ? s_result.trim().slice(0, 24) : "No result";
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div style={get_node_header_style("rgba(254, 226, 226, 0.92)", "#fca5a5")}>
+        <NodeHeaderTitle
+          s_kind="end"
+          s_title="End"
+          s_subtitle={s_preview}
+        />
+        <NodeDeleteButton id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          {a_input_handles.length} inputs - {a_output_handles.length} outputs
+        </div>
+
+        <NodeDetailsSection
+          s_title="Settings"
+          s_meta={b_success ? "success" : "fail"}
+          b_default_open={false}
+        >
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>success</label>
+          <select
+            value={b_success ? "true" : "false"}
+            onChange={(o_event) => {
+              update_node_data(id, { b_success: o_event.target.value === "true" });
+            }}
+            style={get_input_style()}
+          >
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>result</label>
+          <textarea
+            value={s_result}
+            onChange={(o_event) => {
+              update_node_data(id, {
+                s_result: o_event.target.value,
+                s_query: o_event.target.value,
+              });
+            }}
+            rows={4}
+            style={get_input_style()}
+          />
+        </NodeDetailsSection>
+
+        <NodeDetailsSection
+          s_title="Legacy"
+          s_meta={String(a_legacy_outputs.length)}
+          b_default_open={false}
+        >
+          <div style={get_meta_style()}>
+            {a_legacy_outputs.length} legacy outputs
+          </div>
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/group_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/group_node.tsx
+description: Darstellung des Group Nodes mit kompaktem Design,
+sichtbaren Handles und aufklappbaren Details.
+history:
+- 2026-03-25: Erstellt fuer xyflow Group Node. author Marcus Schlieper
+- 2026-03-27: Erweitert um Delete Button. author Marcus Schlieper
+- 2026-03-27: Erweitert um Inline Eingaben im Node. author Marcus Schlieper
+- 2026-04-06: Auf input_handles und output_handles mit sicheren Defaults umgestellt. author Marcus Schlieper
+- 2026-04-06: Sichtbare kopierbare Handle Labels und Runtime Ergebnisanzeige ergaenzt. author Marcus Schlieper
+- 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { IGroupNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+export function GroupNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as IGroupNodeData) || ({} as IGroupNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const a_child_node_ids = Array.isArray(
+    (o_data as Record<string, unknown>).child_node_ids,
+  )
+    ? ((((o_data as Record<string, unknown>).child_node_ids as unknown[]) || []))
+    : [];
+
+  const a_input_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).input_handles,
+    [
+      {
+        s_key: "input_main",
+        s_label: "Daten",
+        s_description: "Hauptdaten",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_output_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).output_handles,
+    [
+      {
+        s_key: "output_main",
+        s_label: "Ergebnis",
+        s_description: "Gruppen Ergebnis",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const s_group_name =
+    typeof (o_data as Record<string, unknown>).s_group_name === "string"
+      ? ((o_data as Record<string, unknown>).s_group_name as string)
+      : "";
+
+  const s_preview =
+    s_group_name.trim() !== "" ? s_group_name.trim() : "Unnamed group";
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div style={get_node_header_style("rgba(224, 231, 255, 0.92)", "#c7d2fe")}>
+        <NodeHeaderTitle
+          s_kind="group"
+          s_title="Group"
+          s_subtitle={s_preview}
+        />
+        <NodeDeleteButton id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          Group - {a_child_node_ids.length} nodes
+        </div>
+
+        <NodeDetailsSection
+          s_title="Details"
+          s_meta={String(a_child_node_ids.length)}
+          b_default_open={false}
+        >
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>name</label>
+          <input
+            value={s_group_name}
+            onChange={(o_event) => {
+              update_node_data(id, { s_group_name: o_event.target.value });
+            }}
+            style={get_input_style()}
+          />
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/http_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/http_node.tsx
+description: Darstellung des HTTP Nodes mit kompaktem Design,
+sichtbaren Handles und aufklappbaren Details.
+history:
+- 2026-03-25: Erstellt fuer xyflow HTTP Node. author Marcus Schlieper
+- 2026-03-27: Erweitert um Delete Button. author Marcus Schlieper
+- 2026-03-27: Erweitert um Inline Eingaben im Node. author Marcus Schlieper
+- 2026-04-06: Auf input_handles und output_handles mit sicheren Defaults umgestellt. author Marcus Schlieper
+- 2026-04-06: Sichtbare kopierbare Handle Labels und Runtime Ergebnisanzeige ergaenzt. author Marcus Schlieper
+- 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { IHttpNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+export function HttpNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as IHttpNodeData) || ({} as IHttpNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const a_input_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).input_handles,
+    [
+      {
+        s_key: "input_main",
+        s_label: "Anfrage",
+        s_description: "Hauptdaten fuer den HTTP Aufruf",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_output_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).output_handles,
+    [
+      {
+        s_key: "output_main",
+        s_label: "Antwort",
+        s_description: "Ergebnis des HTTP Aufrufs",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const s_api =
+    typeof (o_data as Record<string, unknown>).s_api === "string"
+      ? ((o_data as Record<string, unknown>).s_api as string)
+      : "";
+
+  const s_method =
+    typeof (o_data as Record<string, unknown>).s_method === "string"
+      ? ((o_data as Record<string, unknown>).s_method as string)
+      : "GET";
+
+  const i_timeout =
+    typeof (o_data as Record<string, unknown>).i_timeout === "number"
+      ? ((o_data as Record<string, unknown>).i_timeout as number)
+      : 0;
+
+  const s_preview =
+    s_method + " " + (s_api.trim() !== "" ? s_api.trim().slice(0, 18) : "no_api");
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div style={get_node_header_style("rgba(219, 234, 254, 0.92)", "#93c5fd")}>
+        <NodeHeaderTitle
+          s_kind="http"
+          s_title="HTTP"
+          s_subtitle={s_preview}
+        />
+        <NodeDeleteButton id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          Inputs {a_input_handles.length} - Outputs {a_output_handles.length}
+        </div>
+
+        <NodeDetailsSection
+          s_title="Request"
+          s_meta={s_method}
+          b_default_open={false}
+        >
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>api</label>
+          <input
+            value={s_api}
+            onChange={(o_event) => {
+              update_node_data(id, { s_api: o_event.target.value });
+            }}
+            style={get_input_style()}
+          />
+
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>method</label>
+          <select
+            value={s_method}
+            onChange={(o_event) => {
+              update_node_data(id, { s_method: o_event.target.value });
+            }}
+            style={get_input_style()}
+          >
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="PATCH">PATCH</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>timeout</label>
+          <input
+            type="number"
+            value={i_timeout}
+            onChange={(o_event) => {
+              const i_value = Number(o_event.target.value);
+              update_node_data(id, {
+                i_timeout: Number.isFinite(i_value) ? i_value : 0,
+              });
+            }}
+            style={get_input_style()}
+          />
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/llm_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/llm_node.tsx
+description: Darstellung des LLM Nodes mit kompaktem Design,
+sichtbaren Handles, SVG Icon und aufklappbaren Details.
+history:
+- 2026-03-25: Erstellt fuer xyflow LLM Node. author Marcus Schlieper
+- 2026-03-27: Erweitert um Delete Button. author Marcus Schlieper
+- 2026-03-27: Erweitert um Inline Eingaben im Node. author Marcus Schlieper
+- 2026-04-06: Auf input_handles und output_handles mit sicheren Defaults umgestellt. author Marcus Schlieper
+- 2026-04-06: Sichtbare kopierbare Handle Labels und Runtime Ergebnisanzeige ergaenzt. author Marcus Schlieper
+- 2026-04-06: Tools Ausgang und Event Handles unten ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-06: Obere Action Handles useTool und useMemory ergaenzt. author Marcus Schlieper
+- 2026-04-08: Provider Auswahl zwischen openai und endpoint sowie Endpoint Felder ergaenzt. author Marcus Schlieper
+- 2026-04-08: Bei openai werden apiHost und apiKey ausgeblendet. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { ILlmNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderActionHandles,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+const a_openai_model_options: string[] = [
+  "gpt-5.4",
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4.1-nano",
+  "gpt-4o",
+  "gpt-4o-mini",
+  "o4-mini",
+  "o3",
+  "o3-mini",
+];
+
+export function LlmNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as ILlmNodeData) || ({} as ILlmNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const a_input_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).input_handles,
+    [
+      {
+        s_key: "input_main",
+        s_label: "Prompt Daten",
+        s_description: "Hauptdaten fuer den Prompt",
+      },
+      {
+        s_key: "input_context",
+        s_label: "Kontext",
+        s_description: "Zusaetzlicher Kontext",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_output_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).output_handles,
+    [
+      {
+        s_key: "output_main",
+        s_label: "Antwort",
+        s_description: "Antwort des Modells",
+      },
+      {
+        s_key: "tools",
+        s_label: "Tools",
+        s_description: "Tool Aufrufe des Modells",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const s_provider =
+    typeof (o_data as Record<string, unknown>).s_provider === "string"
+      ? ((o_data as Record<string, unknown>).s_provider as string)
+      : "openai";
+
+  const s_model_name =
+    typeof o_data.s_model_name === "string" ? o_data.s_model_name : "";
+
+  const s_api_host =
+    typeof o_data.s_api_host === "string" ? o_data.s_api_host : "";
+
+  const s_api_key =
+    typeof o_data.s_api_key === "string" ? o_data.s_api_key : "";
+
+  const d_temperature =
+    typeof o_data.d_temperature === "number" ? o_data.d_temperature : 0;
+
+  const s_preview =
+    (s_model_name.trim() !== "" ? s_model_name : "select_model") +
+    " | " +
+    s_provider;
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderActionHandles o_data={(o_data as Record<string, unknown>) || {}} />
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div style={get_node_header_style("rgba(237, 233, 254, 0.92)", "#c4b5fd")}>
+        <NodeHeaderTitle
+          s_kind="llm"
+          s_title="LLM"
+          s_subtitle={s_preview}
+        />
+        <NodeDeleteButton id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          Prompt {a_input_handles.length} - Result {a_output_handles.length}
+        </div>
+
+        <NodeDetailsSection
+          s_title="Model"
+          s_meta={s_provider}
+          b_default_open={false}
+        >
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>provider</label>
+          <select
+            value={s_provider}
+            onChange={(o_event) => {
+              const s_next_provider = o_event.target.value;
+              update_node_data(id, {
+                s_provider: s_next_provider,
+              });
+            }}
+            style={get_input_style()}
+          >
+            <option value="openai">openai</option>
+            <option value="endpoint">endpoint</option>
+          </select>
+
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>model</label>
+          {s_provider === "openai" ? (
+            <select
+              value={s_model_name}
+              onChange={(o_event) => {
+                update_node_data(id, { s_model_name: o_event.target.value });
+              }}
+              style={get_input_style()}
+            >
+              <option value="">select_model</option>
+              {a_openai_model_options.map((s_item) => (
+                <option key={s_item} value={s_item}>
+                  {s_item}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              value={s_model_name}
+              onChange={(o_event) => {
+                update_node_data(id, { s_model_name: o_event.target.value });
+              }}
+              style={get_input_style()}
+            />
+          )}
+
+          {s_provider === "endpoint" ? (
+            <>
+              <label style={{ ...get_meta_style(), fontWeight: 700 }}>endpoint_url</label>
+              <input
+                value={s_api_host}
+                onChange={(o_event) => {
+                  update_node_data(id, { s_api_host: o_event.target.value });
+                }}
+                style={get_input_style()}
+              />
+
+              <label style={{ ...get_meta_style(), fontWeight: 700 }}>endpoint_api_key</label>
+              <input
+                value={s_api_key}
+                onChange={(o_event) => {
+                  update_node_data(id, { s_api_key: o_event.target.value });
+                }}
+                style={get_input_style()}
+              />
+            </>
+          ) : null}
+
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>temperature</label>
+          <input
+            type="number"
+            step="0.1"
+            value={d_temperature}
+            onChange={(o_event) => {
+              const d_value = Number(o_event.target.value);
+              update_node_data(id, {
+                d_temperature: Number.isFinite(d_value) ? d_value : 0,
+              });
+            }}
+            style={get_input_style()}
+          />
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/loop_for_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/loop_for_node.tsx
+description: Darstellung des Loop For Nodes mit kompaktem Design,
+sichtbaren Handles und aufklappbaren Details.
+history:
+- 2026-03-25: Erstellt fuer xyflow Loop Node. author Marcus Schlieper
+- 2026-03-27: Erweitert um Delete Button. author Marcus Schlieper
+- 2026-03-27: Erweitert um Inline Eingaben im Node. author Marcus Schlieper
+- 2026-04-06: Auf input_handles und output_handles mit sicheren Defaults umgestellt. author Marcus Schlieper
+- 2026-04-06: Sichtbare kopierbare Handle Labels und Runtime Ergebnisanzeige ergaenzt. author Marcus Schlieper
+- 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { ILoopForNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+export function LoopForNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as ILoopForNodeData) || ({} as ILoopForNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const a_input_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).input_handles,
+    [
+      {
+        s_key: "input_main",
+        s_label: "Daten",
+        s_description: "Daten fuer die Schleife",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_output_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).output_handles,
+    [
+      {
+        s_key: "output_main",
+        s_label: "Ergebnis",
+        s_description: "Ergebnis der Schleife",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const s_source_array_variable =
+    typeof o_data.s_source_array_variable === "string"
+      ? o_data.s_source_array_variable
+      : "";
+
+  const s_item_variable =
+    typeof o_data.s_item_variable === "string" ? o_data.s_item_variable : "";
+
+  const s_index_variable =
+    typeof o_data.s_index_variable === "string" ? o_data.s_index_variable : "";
+
+  const s_preview =
+    s_source_array_variable.trim() !== "" ? s_source_array_variable.trim() : "array_source";
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div style={get_node_header_style("rgba(204, 251, 241, 0.92)", "#99f6e4")}>
+        <NodeHeaderTitle
+          s_kind="loop"
+          s_title="Loop For"
+          s_subtitle={s_preview}
+        />
+        <NodeDeleteButton id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          Array Input {a_input_handles.length} - Iterator {a_output_handles.length}
+        </div>
+
+        <NodeDetailsSection
+          s_title="Iterator"
+          s_meta="config"
+          b_default_open={false}
+        >
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>source</label>
+          <input
+            value={s_source_array_variable}
+            onChange={(o_event) => {
+              update_node_data(id, {
+                s_source_array_variable: o_event.target.value,
+              });
+            }}
+            style={get_input_style()}
+          />
+
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>item</label>
+          <input
+            value={s_item_variable}
+            onChange={(o_event) => {
+              update_node_data(id, { s_item_variable: o_event.target.value });
+            }}
+            style={get_input_style()}
+          />
+
+          <label style={{ ...get_meta_style(), fontWeight: 700 }}>index</label>
+          <input
+            value={s_index_variable}
+            onChange={(o_event) => {
+              update_node_data(id, { s_index_variable: o_event.target.value });
+            }}
+            style={get_input_style()}
+          />
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/node_runtime_helpers.tsx
+================================================================
+/* file: frontend/src/components/nodes/node_runtime_helpers.tsx
+description: Gemeinsame Hilfen fuer Node Rendering von Handles, Labels,
+Runtime Ergebnissen und dem kompakten Node Design mit aufklappbaren Details.
+Erweitert um Hover Tooltips fuer Input und Output Knotenpunkte sowie
+leserliche Anzeige von Runtime Werten direkt an Handles.
+history:
+- 2026-04-06: Erstellt fuer sichtbare Handle Labels und Runtime Ergebnisanzeige. author Marcus Schlieper
+- 2026-04-11: Kompaktes Design mit klappbaren Details und Node SVG Icons ergaenzt. author Marcus Schlieper
+- 2026-04-12: Default fuer Details auf zugeklappt gesetzt, Runtime Result einklappbar gemacht und Pfeil Darstellung verbessert. author Marcus Schlieper
+- 2026-04-12: Hover Infos fuer Input und Output Handles sowie Runtime Werte an Handles hinzugefuegt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+import React from "react";
+import { Handle, Position } from "@xyflow/react";
+import {
+  get_input_handle_style,
+  get_output_handle_style,
+} from "./node_handle_styles";
+
+type TRecord = Record<string, unknown>;
+
+export type THandleDefinition = {
+  s_key?: string;
+  s_label?: string;
+  s_description?: string;
+};
+
+export type TNodeRuntimeResult = {
+  message?: string;
+  output?: unknown;
+  output_meta?: unknown;
+};
+
+export type TNodeEventHandleKey =
+  | "on_begin"
+  | "on_change"
+  | "on_end"
+  | "on_error";
+
+export type TNodeActionHandleKey =
+  | "use_tool"
+  | "use_memory";
+
+export type TNodeEventHandleFlags = {
+  b_show_on_begin?: boolean;
+  b_show_on_change?: boolean;
+  b_show_on_end?: boolean;
+  b_show_on_error?: boolean;
+};
+
+export type TNodeActionHandleFlags = {
+  b_show_use_tool?: boolean;
+  b_show_use_memory?: boolean;
+};
+
+type TEventHandleDefinition = {
+  s_key: TNodeEventHandleKey;
+  s_label: string;
+};
+
+type TActionHandleDefinition = {
+  s_key: TNodeActionHandleKey;
+  s_label: string;
+};
+
+type TNodeKind =
+  | "start"
+  | "end"
+  | "llm"
+  | "classifier"
+  | "http"
+  | "code"
+  | "condition"
+  | "switch"
+  | "loop"
+  | "group"
+  | "comment"
+  | "tool";
+
+type TRenderNamedHandlesProps = {
+  a_handles: THandleDefinition[];
+  s_type: "source" | "target";
+  o_data?: TRecord;
+};
+
+const a_default_event_handles: TEventHandleDefinition[] = [
+  {
+    s_key: "on_begin",
+    s_label: "onBegin",
+  },
+  {
+    s_key: "on_change",
+    s_label: "onChange",
+  },
+  {
+    s_key: "on_end",
+    s_label: "onEnd",
+  },
+  {
+    s_key: "on_error",
+    s_label: "onError",
+  },
+];
+
+const a_default_action_handles: TActionHandleDefinition[] = [
+  {
+    s_key: "use_tool",
+    s_label: "useTool",
+  },
+  {
+    s_key: "use_memory",
+    s_label: "useMemory",
+  },
+];
+
+export function get_safe_handle_definitions(
+  a_handles: unknown,
+  a_fallback_handles: THandleDefinition[],
+): THandleDefinition[] {
+  if (!Array.isArray(a_handles) || a_handles.length === 0) {
+    return a_fallback_handles;
+  }
+
+  const a_result: THandleDefinition[] = [];
+
+  for (const o_item of a_handles) {
+    if (!o_item || typeof o_item !== "object") {
+      continue;
+    }
+
+    const o_handle = o_item as THandleDefinition;
+    const s_safe_key =
+      typeof o_handle.s_key === "string" && o_handle.s_key.trim() !== ""
+        ? o_handle.s_key.trim()
+        : "";
+    const s_safe_label =
+      typeof o_handle.s_label === "string" && o_handle.s_label.trim() !== ""
+        ? o_handle.s_label.trim()
+        : s_safe_key;
+
+    a_result.push({
+      s_key: s_safe_key,
+      s_label: s_safe_label,
+      s_description:
+        typeof o_handle.s_description === "string"
+          ? o_handle.s_description
+          : "",
+    });
+  }
+
+  return a_result.length > 0 ? a_result : a_fallback_handles;
+}
+
+export function get_safe_runtime_status(s_value: unknown): string {
+  return typeof s_value === "string" && s_value.trim() !== ""
+    ? s_value.trim()
+    : "idle";
+}
+
+export function get_runtime_result(o_data: TRecord): unknown {
+  if (typeof o_data.result !== "undefined" && o_data.result !== null) {
+    return o_data.result;
+  }
+
+  if (typeof o_data.o_result !== "undefined" && o_data.o_result !== null) {
+    return o_data.o_result;
+  }
+
+  if (
+    typeof o_data.runtime_result !== "undefined" &&
+    o_data.runtime_result !== null
+  ) {
+    return o_data.runtime_result;
+  }
+
+  return null;
+}
+
+function get_nested_value(
+  o_value: unknown,
+  a_path: string[],
+): unknown {
+  let o_current: unknown = o_value;
+
+  for (const s_part of a_path) {
+    if (!o_current || typeof o_current !== "object") {
+      return undefined;
+    }
+
+    if (!(s_part in (o_current as TRecord))) {
+      return undefined;
+    }
+
+    o_current = (o_current as TRecord)[s_part];
+  }
+
+  return o_current;
+}
+
+function stringify_safe(o_value: unknown): string {
+  if (o_value === null || typeof o_value === "undefined") {
+    return "No value";
+  }
+
+  if (typeof o_value === "string") {
+    return o_value;
+  }
+
+  if (
+    typeof o_value === "number" ||
+    typeof o_value === "boolean" ||
+    typeof o_value === "bigint"
+  ) {
+    return String(o_value);
+  }
+
+  try {
+    return JSON.stringify(o_value, null, 2);
+  } catch (_o_exc) {
+    return String(o_value);
+  }
+}
+
+function get_runtime_value_maps(
+  o_data: TRecord,
+): {
+  o_output_values: TRecord;
+  o_input_values: TRecord;
+} {
+  const o_result = get_runtime_result(o_data);
+  const o_output_values_raw =
+    get_nested_value(o_result, ["output"]) ??
+    get_nested_value(o_result, ["outputs"]) ??
+    o_data.output_values ??
+    o_data.outputs ??
+    {};
+  const o_input_values_raw =
+    get_nested_value(o_result, ["inputs"]) ??
+    get_nested_value(o_result, ["input"]) ??
+    o_data.input_values ??
+    o_data.inputs ??
+    {};
+
+  return {
+    o_output_values:
+      o_output_values_raw && typeof o_output_values_raw === "object"
+        ? (o_output_values_raw as TRecord)
+        : {},
+    o_input_values:
+      o_input_values_raw && typeof o_input_values_raw === "object"
+        ? (o_input_values_raw as TRecord)
+        : {},
+  };
+}
+
+export function get_handle_runtime_value(
+  o_runtime_result: unknown,
+  s_handle_key: string,
+): unknown {
+  if (
+    !o_runtime_result ||
+    typeof o_runtime_result !== "object" ||
+    typeof s_handle_key !== "string" ||
+    s_handle_key.trim() === ""
+  ) {
+    return undefined;
+  }
+
+  const s_safe_key = s_handle_key.trim();
+
+  const a_candidate_paths: string[][] = [
+    ["output", s_safe_key],
+    ["outputs", s_safe_key],
+    ["result", s_safe_key],
+    ["input", s_safe_key],
+    ["inputs", s_safe_key],
+    [s_safe_key],
+  ];
+
+  for (const a_path of a_candidate_paths) {
+    const o_candidate = get_nested_value(o_runtime_result, a_path);
+    if (typeof o_candidate !== "undefined") {
+      return o_candidate;
+    }
+  }
+
+  if (s_safe_key.includes(".")) {
+    const a_dotted_parts = s_safe_key
+      .split(".")
+      .map((s_part) => s_part.trim())
+      .filter((s_part) => s_part !== "");
+
+    const a_dotted_candidate_paths: string[][] = [
+      a_dotted_parts,
+      ["output", ...a_dotted_parts],
+      ["outputs", ...a_dotted_parts],
+      ["result", ...a_dotted_parts],
+      ["input", ...a_dotted_parts],
+      ["inputs", ...a_dotted_parts],
+    ];
+
+    for (const a_path of a_dotted_candidate_paths) {
+      const o_candidate = get_nested_value(o_runtime_result, a_path);
+      if (typeof o_candidate !== "undefined") {
+        return o_candidate;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function get_handle_hover_text(
+  o_handle: THandleDefinition,
+  s_handle_key: string,
+  s_handle_label: string,
+  s_type: "source" | "target",
+  o_data?: TRecord,
+): string {
+  const s_kind = s_type === "source" ? "Output" : "Input";
+  const s_description =
+    typeof o_handle.s_description === "string" && o_handle.s_description.trim() !== ""
+      ? o_handle.s_description.trim()
+      : "";
+  const s_runtime_value = get_handle_runtime_value(o_data, s_type, s_handle_key);
+
+  const a_lines: string[] = [];
+  a_lines.push(`${s_kind}: ${s_handle_label}`);
+  a_lines.push(`Variable: ${s_handle_key}`);
+
+  if (s_description !== "") {
+    a_lines.push(`Info: ${s_description}`);
+  }
+
+  if (s_runtime_value !== "") {
+    a_lines.push("Value:");
+    a_lines.push(s_runtime_value);
+  }
+
+  return a_lines.join("\n");
+}
+
+export function get_runtime_result_text(o_result: unknown): string {
+  if (o_result === null || typeof o_result === "undefined") {
+    return "No result";
+  }
+
+  const a_candidate_paths: string[][] = [
+    ["output", "result"],
+    ["output", "frontend_result"],
+    ["output", "value"],
+    ["result"],
+    ["frontend_result"],
+    ["value"],
+  ];
+
+  for (const a_path of a_candidate_paths) {
+    const o_candidate = get_nested_value(o_result, a_path);
+    if (typeof o_candidate !== "undefined" && o_candidate !== null) {
+      return stringify_safe(o_candidate);
+    }
+  }
+
+  return stringify_safe(o_result);
+}
+
+export function get_node_wrapper_style(): React.CSSProperties {
+  return {
+    minWidth: "280px",
+    maxWidth: "280px",
+    width: "280px",
+    border: "1px solid #dbe2ea",
+    borderRadius: "18px",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(249,250,251,1) 100%)",
+    boxShadow: "0 14px 32px rgba(15, 23, 42, 0.10)",
+    overflow: "visible",
+    position: "relative",
+    paddingBottom: "46px",
+    boxSizing: "border-box",
+    backdropFilter: "blur(6px)",
+  };
+}
+
+export function get_node_header_style(
+  s_background_color: string,
+  s_border_color: string,
+): React.CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    padding: "12px 14px",
+    borderRadius: "18px 18px 0 0",
+    background:
+      "linear-gradient(180deg, " +
+      s_background_color +
+      " 0%, rgba(255,255,255,0.88) 100%)",
+    borderBottom: "1px solid " + s_border_color,
+    fontWeight: 700,
+    fontSize: "14px",
+    color: "#0f172a",
+  };
+}
+
+export function get_node_body_style(): React.CSSProperties {
+  return {
+    padding: "12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    overflow: "hidden",
+    boxSizing: "border-box",
+  };
+}
+
+export function get_meta_style(): React.CSSProperties {
+  return {
+    fontSize: "12px",
+    color: "#64748b",
+  };
+}
+
+export function get_label_style(): React.CSSProperties {
+  return {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#334155",
+    marginBottom: "4px",
+    display: "block",
+  };
+}
+
+export function get_input_style(): React.CSSProperties {
+  return {
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    border: "1px solid #dbe2ea",
+    borderRadius: "10px",
+    padding: "9px 11px",
+    fontSize: "13px",
+    color: "#0f172a",
+    backgroundColor: "#ffffff",
+    outline: "none",
+  };
+}
+
+export function get_runtime_box_style(): React.CSSProperties {
+  return {
+    border: "1px solid #e2e8f0",
+    borderRadius: "12px",
+    backgroundColor: "#f8fafc",
+    padding: "10px",
+    marginTop: "4px",
+    maxWidth: "100%",
+    width: "100%",
+    boxSizing: "border-box",
+    overflow: "hidden",
+  };
+}
+
+export function get_runtime_title_style(): React.CSSProperties {
+  return {
+    margin: "0 0 6px 0",
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#334155",
+  };
+}
+
+export function get_runtime_pre_style(): React.CSSProperties {
+  return {
+    margin: 0,
+    fontSize: "12px",
+    lineHeight: 1.45,
+    color: "#0f172a",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    maxHeight: "220px",
+    maxWidth: "100%",
+    overflowX: "auto",
+    overflowY: "auto",
+    display: "block",
+  };
+}
+
+export function get_handle_label_style(
+  s_side: "left" | "right",
+  d_top: number,
+): React.CSSProperties {
+  return {
+    position: "absolute",
+    top: d_top - 10,
+    left: s_side === "left" ? "-8px" : undefined,
+    right: s_side === "right" ? "-8px" : undefined,
+    transform:
+      s_side === "left" ? "translateX(-100%)" : "translateX(100%)",
+    fontSize: "11px",
+    lineHeight: 1.2,
+    color: "#334155",
+    backgroundColor: "#ffffff",
+    border: "1px solid #dbe2ea",
+    borderRadius: "999px",
+    padding: "4px 7px",
+    whiteSpace: "nowrap",
+    userSelect: "text",
+    WebkitUserSelect: "text",
+    cursor: "help",
+    zIndex: 20,
+    boxShadow: "0 6px 16px rgba(15, 23, 42, 0.08)",
+    maxWidth: "180px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+}
+
+export function get_handle_value_style(
+  s_side: "left" | "right",
+  d_top: number,
+): React.CSSProperties {
+  return {
+    position: "absolute",
+    top: d_top + 9,
+    left: s_side === "left" ? "-8px" : undefined,
+    right: s_side === "right" ? "-8px" : undefined,
+    transform:
+      s_side === "left" ? "translateX(-100%)" : "translateX(100%)",
+    fontSize: "10px",
+    lineHeight: 1.25,
+    color: "#0f172a",
+    backgroundColor: "#f8fafc",
+    border: "1px solid #dbe2ea",
+    borderRadius: "10px",
+    padding: "5px 7px",
+    userSelect: "text",
+    WebkitUserSelect: "text",
+    cursor: "text",
+    zIndex: 20,
+    boxShadow: "0 6px 16px rgba(15, 23, 42, 0.06)",
+    maxWidth: "180px",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+  };
+}
+
+export function get_handle_top_by_index(i_index: number): number {
+  return 62 + i_index * 42;
+}
+
+export function get_safe_event_handle_flags(
+  o_data: TRecord,
+): TNodeEventHandleFlags {
+  return {
+    b_show_on_begin: o_data.b_show_on_begin === true,
+    b_show_on_change: o_data.b_show_on_change === true,
+    b_show_on_end: o_data.b_show_on_end === true,
+    b_show_on_error: o_data.b_show_on_error === true,
+  };
+}
+
+export function get_safe_action_handle_flags(
+  o_data: TRecord,
+): TNodeActionHandleFlags {
+  return {
+    b_show_use_tool: o_data.b_show_use_tool === true,
+    b_show_use_memory: o_data.b_show_use_memory === true,
+  };
+}
+
+export function get_visible_event_handles(
+  o_data: TRecord,
+): TEventHandleDefinition[] {
+  const o_flags = get_safe_event_handle_flags(o_data);
+
+  return a_default_event_handles.filter((o_item) => {
+    if (o_item.s_key === "on_begin") {
+      return o_flags.b_show_on_begin === true;
+    }
+    if (o_item.s_key === "on_change") {
+      return o_flags.b_show_on_change === true;
+    }
+    if (o_item.s_key === "on_end") {
+      return o_flags.b_show_on_end === true;
+    }
+    if (o_item.s_key === "on_error") {
+      return o_flags.b_show_on_error === true;
+    }
+    return false;
+  });
+}
+
+export function get_visible_action_handles(
+  o_data: TRecord,
+): TActionHandleDefinition[] {
+  const o_flags = get_safe_action_handle_flags(o_data);
+
+  return a_default_action_handles.filter((o_item) => {
+    if (o_item.s_key === "use_tool") {
+      return o_flags.b_show_use_tool === true;
+    }
+    if (o_item.s_key === "use_memory") {
+      return o_flags.b_show_use_memory === true;
+    }
+    return false;
+  });
+}
+
+export function get_event_handle_left_by_index(
+  i_index: number,
+  i_count: number,
+): string {
+  const i_safe_count = Math.max(1, i_count);
+  const d_step = 100 / (i_safe_count + 1);
+  const d_left = d_step * (i_index + 1);
+  return d_left.toFixed(3) + "%";
+}
+
+export function get_event_handle_style(
+  d_left_percent: string,
+): React.CSSProperties {
+  return {
+    position: "absolute",
+    left: d_left_percent,
+    bottom: "-8px",
+    width: "14px",
+    height: "14px",
+    borderRadius: "3px",
+    background: "#ffffff",
+    border: "2px solid #64748b",
+    transform: "translateX(-50%) rotate(45deg)",
+    zIndex: 15,
+    boxShadow: "0 4px 12px rgba(15, 23, 42, 0.10)",
+  };
+}
+
+export function get_event_handle_label_style(
+  d_left_percent: string,
+): React.CSSProperties {
+  return {
+    position: "absolute",
+    left: d_left_percent,
+    bottom: "-31px",
+    transform: "translateX(-50%)",
+    fontSize: "10px",
+    lineHeight: 1.1,
+    color: "#334155",
+    backgroundColor: "#ffffff",
+    border: "1px solid #dbe2ea",
+    borderRadius: "999px",
+    padding: "3px 6px",
+    whiteSpace: "nowrap",
+    zIndex: 20,
+    userSelect: "text",
+    WebkitUserSelect: "text",
+  };
+}
+
+export function get_action_handle_style(
+  d_left_percent: string,
+): React.CSSProperties {
+  return {
+    position: "absolute",
+    left: d_left_percent,
+    top: "-8px",
+    width: "14px",
+    height: "14px",
+    borderRadius: "3px",
+    background: "#ffffff",
+    border: "2px solid #2563eb",
+    transform: "translateX(-50%) rotate(45deg)",
+    zIndex: 15,
+    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.18)",
+  };
+}
+
+export function get_action_handle_label_style(
+  d_left_percent: string,
+): React.CSSProperties {
+  return {
+    position: "absolute",
+    left: d_left_percent,
+    top: "-31px",
+    transform: "translateX(-50%)",
+    fontSize: "10px",
+    lineHeight: 1.1,
+    color: "#334155",
+    backgroundColor: "#ffffff",
+    border: "1px solid #dbe2ea",
+    borderRadius: "999px",
+    padding: "3px 6px",
+    whiteSpace: "nowrap",
+    zIndex: 20,
+    userSelect: "text",
+    WebkitUserSelect: "text",
+  };
+}
+
+export function get_node_title_row_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    minWidth: 0,
+    flex: 1,
+  };
+}
+
+export function get_node_title_text_wrap_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    flexDirection: "column",
+    minWidth: 0,
+    gap: "2px",
+  };
+}
+
+export function get_node_title_style(): React.CSSProperties {
+  return {
+    fontSize: "14px",
+    fontWeight: 800,
+    color: "#0f172a",
+    lineHeight: 1.15,
+    margin: 0,
+  };
+}
+
+export function get_node_subtitle_style(): React.CSSProperties {
+  return {
+    fontSize: "11px",
+    color: "#64748b",
+    lineHeight: 1.15,
+    margin: 0,
+  };
+}
+
+export function get_summary_chip_style(): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "11px",
+    color: "#475569",
+    backgroundColor: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "999px",
+    padding: "5px 9px",
+  };
+}
+
+export function get_collapsible_section_style(): React.CSSProperties {
+  return {
+    border: "1px solid #e2e8f0",
+    borderRadius: "14px",
+    backgroundColor: "#ffffff",
+    overflow: "hidden",
+    boxShadow: "0 6px 16px rgba(15, 23, 42, 0.04)",
+  };
+}
+
+export function get_collapsible_summary_style(): React.CSSProperties {
+  return {
+    listStyle: "none",
+    cursor: "pointer",
+    padding: "10px 12px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#334155",
+    backgroundColor: "#f8fafc",
+    userSelect: "none",
+  };
+}
+
+export function get_collapsible_body_style(): React.CSSProperties {
+  return {
+    padding: "12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    backgroundColor: "#ffffff",
+  };
+}
+
+export function get_stack_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  };
+}
+
+export function get_row_wrap_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  };
+}
+
+export function get_node_icon_wrap_style(
+  s_kind: TNodeKind,
+): React.CSSProperties {
+  const o_palette = get_node_palette(s_kind);
+
+  return {
+    width: "34px",
+    height: "34px",
+    minWidth: "34px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background:
+      "linear-gradient(180deg, " +
+      o_palette.s_bg +
+      " 0%, rgba(255,255,255,0.98) 100%)",
+    border: "1px solid " + o_palette.s_border,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)",
+  };
+}
+
+export function get_node_palette(
+  s_kind: TNodeKind,
+): { s_bg: string; s_border: string; s_stroke: string; s_fill: string } {
+  if (s_kind === "start") {
+    return {
+      s_bg: "rgba(16, 185, 129, 0.18)",
+      s_border: "rgba(16, 185, 129, 0.35)",
+      s_stroke: "#059669",
+      s_fill: "#d1fae5",
+    };
+  }
+
+  if (s_kind === "end") {
+    return {
+      s_bg: "rgba(239, 68, 68, 0.16)",
+      s_border: "rgba(239, 68, 68, 0.30)",
+      s_stroke: "#dc2626",
+      s_fill: "#fee2e2",
+    };
+  }
+
+  if (s_kind === "llm") {
+    return {
+      s_bg: "rgba(139, 92, 246, 0.18)",
+      s_border: "rgba(139, 92, 246, 0.34)",
+      s_stroke: "#7c3aed",
+      s_fill: "#ede9fe",
+    };
+  }
+
+  if (s_kind === "classifier") {
+    return {
+      s_bg: "rgba(168, 85, 247, 0.18)",
+      s_border: "rgba(168, 85, 247, 0.34)",
+      s_stroke: "#9333ea",
+      s_fill: "#f3e8ff",
+    };
+  }
+
+  if (s_kind === "http") {
+    return {
+      s_bg: "rgba(59, 130, 246, 0.18)",
+      s_border: "rgba(59, 130, 246, 0.34)",
+      s_stroke: "#2563eb",
+      s_fill: "#dbeafe",
+    };
+  }
+
+  if (s_kind === "code") {
+    return {
+      s_bg: "rgba(15, 23, 42, 0.16)",
+      s_border: "rgba(51, 65, 85, 0.28)",
+      s_stroke: "#0f172a",
+      s_fill: "#e2e8f0",
+    };
+  }
+
+  if (s_kind === "condition") {
+    return {
+      s_bg: "rgba(245, 158, 11, 0.18)",
+      s_border: "rgba(245, 158, 11, 0.34)",
+      s_stroke: "#d97706",
+      s_fill: "#fef3c7",
+    };
+  }
+
+  if (s_kind === "switch") {
+    return {
+      s_bg: "rgba(249, 115, 22, 0.18)",
+      s_border: "rgba(249, 115, 22, 0.34)",
+      s_stroke: "#ea580c",
+      s_fill: "#ffedd5",
+    };
+  }
+
+  if (s_kind === "loop") {
+    return {
+      s_bg: "rgba(20, 184, 166, 0.18)",
+      s_border: "rgba(20, 184, 166, 0.34)",
+      s_stroke: "#0f766e",
+      s_fill: "#ccfbf1",
+    };
+  }
+
+  if (s_kind === "group") {
+    return {
+      s_bg: "rgba(99, 102, 241, 0.18)",
+      s_border: "rgba(99, 102, 241, 0.34)",
+      s_stroke: "#4f46e5",
+      s_fill: "#e0e7ff",
+    };
+  }
+
+  if (s_kind === "comment") {
+    return {
+      s_bg: "rgba(234, 179, 8, 0.18)",
+      s_border: "rgba(234, 179, 8, 0.34)",
+      s_stroke: "#ca8a04",
+      s_fill: "#fef9c3",
+    };
+  }
+
+  return {
+    s_bg: "rgba(37, 99, 235, 0.18)",
+    s_border: "rgba(37, 99, 235, 0.34)",
+    s_stroke: "#2563eb",
+    s_fill: "#dbeafe",
+  };
+}
+
+export function NodeTypeIcon(
+  o_props: {
+    s_kind: TNodeKind;
+  },
+): JSX.Element {
+  const { s_kind } = o_props;
+  const o_palette = get_node_palette(s_kind);
+
+  const o_common = {
+    stroke: o_palette.s_stroke,
+    fill: "none",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  return (
+    <div style={get_node_icon_wrap_style(s_kind)}>
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        {s_kind === "start" && <circle cx="12" cy="12" r="6" {...o_common} fill={o_palette.s_fill} />}
+        {s_kind === "end" && <rect x="6" y="6" width="12" height="12" rx="3" {...o_common} fill={o_palette.s_fill} />}
+        {s_kind === "http" && (
+          <>
+            <path d="M5 8h14" {...o_common} />
+            <path d="M5 12h14" {...o_common} />
+            <path d="M5 16h10" {...o_common} />
+          </>
+        )}
+        {s_kind === "code" && (
+          <>
+            <path d="M9 8l-4 4 4 4" {...o_common} />
+            <path d="M15 8l4 4-4 4" {...o_common} />
+          </>
+        )}
+        {s_kind === "condition" && <path d="M12 5l7 7-7 7-7-7z" {...o_common} fill={o_palette.s_fill} />}
+        {s_kind === "switch" && (
+          <>
+            <path d="M7 7h10" {...o_common} />
+            <path d="M12 7v10" {...o_common} />
+            <circle cx="12" cy="17" r="2" {...o_common} fill={o_palette.s_fill} />
+          </>
+        )}
+        {s_kind === "loop" && (
+          <>
+            <path d="M18 9a6 6 0 1 0 1 5" {...o_common} />
+            <path d="M19 5v4h-4" {...o_common} />
+          </>
+        )}
+        {s_kind === "llm" && (
+          <>
+            <path d="M6 8h12v8H9l-3 3V8z" {...o_common} fill={o_palette.s_fill} />
+          </>
+        )}
+        {s_kind === "classifier" && (
+          <>
+            <rect x="5" y="6" width="6" height="5" rx="1.5" {...o_common} fill={o_palette.s_fill} />
+            <rect x="13" y="6" width="6" height="5" rx="1.5" {...o_common} fill={o_palette.s_fill} />
+            <rect x="9" y="13" width="6" height="5" rx="1.5" {...o_common} fill={o_palette.s_fill} />
+          </>
+        )}
+        {s_kind === "group" && (
+          <>
+            <rect x="5" y="6" width="14" height="12" rx="2.5" {...o_common} fill={o_palette.s_fill} />
+            <path d="M9 10h6" {...o_common} />
+            <path d="M9 14h6" {...o_common} />
+          </>
+        )}
+        {s_kind === "comment" && (
+          <>
+            <path d="M6 7h12v8H10l-4 3V7z" {...o_common} fill={o_palette.s_fill} />
+          </>
+        )}
+        {![
+          "start",
+          "end",
+          "http",
+          "code",
+          "condition",
+          "switch",
+          "loop",
+          "llm",
+          "classifier",
+          "group",
+          "comment",
+        ].includes(s_kind) && <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />}
+      </svg>
+    </div>
+  );
+}
+
+export function NodeHeaderTitle(
+  o_props: {
+    s_kind: TNodeKind;
+    s_title: string;
+    s_subtitle?: string;
+  },
+): JSX.Element {
+  return (
+    <div style={get_node_title_row_style()}>
+      <NodeTypeIcon s_kind={o_props.s_kind} />
+      <div style={get_node_title_text_wrap_style()}>
+        <p style={get_node_title_style()}>{o_props.s_title}</p>
+        {o_props.s_subtitle ? (
+          <p style={get_node_subtitle_style()}>{o_props.s_subtitle}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function NodeDetailsSection(
+  o_props: {
+    s_title: string;
+    s_meta?: string;
+    b_default_open?: boolean;
+    children: React.ReactNode;
+  },
+): JSX.Element {
+  return (
+    <details
+      open={o_props.b_default_open === true}
+      style={get_collapsible_section_style()}
+    >
+      <summary style={get_collapsible_summary_style()}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+          <span
+            className="node_details_arrow"
+            style={{
+              display: "inline-flex",
+              transition: "transform 0.18s ease",
+            }}
+          >
+            â–¼
+          </span>
+          {o_props.s_title}
+        </span>
+
+        <span style={get_summary_chip_style()}>{o_props.s_meta || "show"}</span>
+      </summary>
+
+      <div style={get_collapsible_body_style()}>{o_props.children}</div>
+
+      <style>
+        {`
+          details > summary::-webkit-details-marker {
+            display: none;
+          }
+
+          details > summary {
+            list-style: none;
+          }
+
+          details[open] .node_details_arrow {
+            transform: rotate(180deg);
+          }
+        `}
+      </style>
+    </details>
+  );
+}
+
+export function RenderNamedHandles(
+  o_props: TRenderNamedHandlesProps,
+): JSX.Element {
+  const { a_handles, s_type, o_data } = o_props;
+
+  return (
+    <>
+      {a_handles.map((o_handle, i_index) => {
+        const s_handle_key =
+          typeof o_handle.s_key === "string" && o_handle.s_key.trim() !== ""
+            ? o_handle.s_key.trim()
+            : (s_type === "target" ? "input_" : "output_") +
+              String(i_index + 1);
+
+        const s_handle_label =
+          typeof o_handle.s_label === "string" &&
+          o_handle.s_label.trim() !== ""
+            ? o_handle.s_label.trim()
+            : s_handle_key;
+
+        const d_top = get_handle_top_by_index(i_index);
+        const s_runtime_value = get_handle_runtime_value(
+          o_data,
+          s_type,
+          s_handle_key,
+        );
+        const s_hover_text = get_handle_hover_text(
+          o_handle,
+          s_handle_key,
+          s_handle_label,
+          s_type,
+          o_data,
+        );
+
+        if (s_type === "target") {
+          return (
+            <React.Fragment key={`target_${s_handle_key}_${i_index}`}>
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={s_handle_key}
+                style={get_input_handle_style(d_top)}
+              />
+              <div
+                style={get_handle_label_style("left", d_top)}
+                title={s_hover_text}
+              >
+                {s_handle_label}
+              </div>
+              {s_runtime_value !== "" ? (
+                <div
+                  style={get_handle_value_style("left", d_top)}
+                  title={s_runtime_value}
+                >
+                  {s_runtime_value}
+                </div>
+              ) : null}
+            </React.Fragment>
+          );
+        }
+
+        return (
+          <React.Fragment key={`source_${s_handle_key}_${i_index}`}>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id={s_handle_key}
+              style={get_output_handle_style(d_top)}
+            />
+            <div
+              style={get_handle_label_style("right", d_top)}
+              title={s_hover_text}
+            >
+              {s_handle_label}
+            </div>
+            {s_runtime_value !== "" ? (
+              <div
+                style={get_handle_value_style("right", d_top)}
+                title={s_runtime_value}
+              >
+                {s_runtime_value}
+              </div>
+            ) : null}
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+}
+
+type TRenderEventHandlesProps = {
+  o_data: TRecord;
+};
+
+export function RenderEventHandles(
+  o_props: TRenderEventHandlesProps,
+): JSX.Element {
+  const { o_data } = o_props;
+  const a_event_handles = get_visible_event_handles(o_data);
+
+  if (a_event_handles.length === 0) {
+    return <></>;
+  }
+
+  return (
+    <>
+      {a_event_handles.map((o_item, i_index) => {
+        const s_left = get_event_handle_left_by_index(
+          i_index,
+          a_event_handles.length,
+        );
+
+        return (
+          <React.Fragment key={`event_${o_item.s_key}`}>
+            <Handle
+              type="source"
+              position={Position.Bottom}
+              id={o_item.s_key}
+              style={get_event_handle_style(s_left)}
+            />
+            <div style={get_event_handle_label_style(s_left)}>
+              {o_item.s_label}
+            </div>
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+}
+
+type TRenderActionHandlesProps = {
+  o_data: TRecord;
+};
+
+export function RenderActionHandles(
+  o_props: TRenderActionHandlesProps,
+): JSX.Element {
+  const { o_data } = o_props;
+  const a_action_handles = get_visible_action_handles(o_data);
+
+  if (a_action_handles.length === 0) {
+    return <></>;
+  }
+
+  return (
+    <>
+      {a_action_handles.map((o_item, i_index) => {
+        const s_left = get_event_handle_left_by_index(
+          i_index,
+          a_action_handles.length,
+        );
+
+        return (
+          <React.Fragment key={`action_${o_item.s_key}`}>
+            <Handle
+              type="target"
+              position={Position.Top}
+              id={o_item.s_key}
+              style={get_action_handle_style(s_left)}
+            />
+            <div style={get_action_handle_label_style(s_left)}>
+              {o_item.s_label}
+            </div>
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+}
+
+type TRenderRuntimeResultProps = {
+  o_data: TRecord;
+};
+
+export function RenderRuntimeResult(
+  o_props: TRenderRuntimeResultProps,
+): JSX.Element {
+  const { o_data } = o_props;
+  const s_runtime_status = get_safe_runtime_status(o_data.s_runtime_status);
+  const o_result = get_runtime_result(o_data);
+
+  if (
+    s_runtime_status !== "success" &&
+    s_runtime_status !== "error" &&
+    s_runtime_status !== "running"
+  ) {
+    return <></>;
+  }
+
+  return (
+    <div style={get_runtime_box_style()}>
+      <p style={get_runtime_title_style()}>
+        Runtime result - {s_runtime_status}
+      </p>
+      <pre style={get_runtime_pre_style()}>
+        {get_runtime_result_text(o_result)}
+      </pre>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/start_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/start_node.tsx
+description: Darstellung des Start Nodes mit dynamischen Outputs,
+kompaktem Design und aufklappbaren Details.
+history:
+- 2026-03-25: Erstellt fuer xyflow Start Node. author Marcus Schlieper
+- 2026-03-27: Erweitert um Delete Button. author Marcus Schlieper
+- 2026-03-27: Erweitert um Inline Eingaben im Node. author Marcus Schlieper
+- 2026-04-06: Sichere Default Werte fuer inputs und neue output_handles ergaenzt. author Marcus Schlieper
+- 2026-04-06: Style an End Node angeglichen. author Marcus Schlieper
+- 2026-04-06: Sichtbare kopierbare Handle Labels und Runtime Ergebnisanzeige ergaenzt. author Marcus Schlieper
+- 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-06: Start Node um dynamische Outputs mit Typ Auswahl und Add Output erweitert. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { IStartNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_label_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+type TStartOutputType = "string" | "int" | "float" | "array" | "object";
+
+type TStartOutputItem = {
+  s_key: string;
+  s_label: string;
+  s_description: string;
+  s_type: TStartOutputType;
+  value: unknown;
+};
+
+function create_output_id(): string {
+  return "output_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
+}
+
+function get_box_style(): React.CSSProperties {
+  return {
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    padding: "10px",
+    backgroundColor: "#f8fafc",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  };
+}
+
+function get_button_row_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  };
+}
+
+function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties {
+  return {
+    border: "1px solid " + (s_variant === "danger" ? "#dc2626" : "#2563eb"),
+    borderRadius: "10px",
+    padding: "8px 10px",
+    backgroundColor: s_variant === "danger" ? "#fef2f2" : "#eff6ff",
+    color: s_variant === "danger" ? "#b91c1c" : "#1d4ed8",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+  };
+}
+
+function get_default_output_item(i_index: number): TStartOutputItem {
+  const s_key = i_index === 0 ? "output_main" : "output_" + String(i_index + 1);
+  const s_label = i_index === 0 ? "Startdaten" : "Output " + String(i_index + 1);
+  return {
+    s_key,
+    s_label,
+    s_description: "Daten des Start Nodes",
+    s_type: "string",
+    value: "",
+  };
+}
+
+function normalize_output_items(o_data: Record<string, unknown>): TStartOutputItem[] {
+  const a_existing_output_items = Array.isArray(o_data.a_outputs)
+    ? (o_data.a_outputs as unknown[])
+    : [];
+
+  const a_output_handles = get_safe_handle_definitions(
+    o_data.output_handles,
+    [
+      {
+        s_key: "output_main",
+        s_label: "Startdaten",
+        s_description: "Daten des Start Nodes",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_result: TStartOutputItem[] = [];
+
+  if (a_existing_output_items.length > 0) {
+    for (let i_index = 0; i_index < a_existing_output_items.length; i_index += 1) {
+      const o_item = a_existing_output_items[i_index];
+      const o_item_safe =
+        o_item && typeof o_item === "object" ? (o_item as Record<string, unknown>) : {};
+      const o_handle = a_output_handles[i_index] || {
+        s_key: i_index === 0 ? "output_main" : "output_" + String(i_index + 1),
+        s_label: i_index === 0 ? "Startdaten" : "Output " + String(i_index + 1),
+        s_description: "Daten des Start Nodes",
+      };
+
+      const s_type_raw =
+        typeof o_item_safe.s_type === "string" ? o_item_safe.s_type.toLowerCase() : "string";
+
+      const s_type: TStartOutputType =
+        s_type_raw === "int" ||
+        s_type_raw === "float" ||
+        s_type_raw === "array" ||
+        s_type_raw === "object"
+          ? (s_type_raw as TStartOutputType)
+          : "string";
+
+      a_result.push({
+        s_key:
+          typeof o_item_safe.s_key === "string" && o_item_safe.s_key.trim() !== ""
+            ? o_item_safe.s_key
+            : String(o_handle.s_key || "output_main"),
+        s_label:
+          typeof o_item_safe.s_label === "string" && o_item_safe.s_label.trim() !== ""
+            ? o_item_safe.s_label
+            : String(o_handle.s_label || "Output"),
+        s_description:
+          typeof o_item_safe.s_description === "string"
+            ? o_item_safe.s_description
+            : String(o_handle.s_description || ""),
+        s_type,
+        value: o_item_safe.value,
+      });
+    }
+  }
+
+  if (a_result.length === 0) {
+    a_result.push(get_default_output_item(0));
+  }
+
+  return a_result;
+}
+
+function build_output_handles_from_items(a_outputs: TStartOutputItem[]): THandleDefinition[] {
+  if (!Array.isArray(a_outputs) || a_outputs.length === 0) {
+    return [
+      {
+        s_key: "output_main",
+        s_label: "Startdaten",
+        s_description: "Daten des Start Nodes",
+      },
+    ];
+  }
+
+  return a_outputs.map((o_item, i_index) => ({
+    s_key:
+      typeof o_item.s_key === "string" && o_item.s_key.trim() !== ""
+        ? o_item.s_key.trim()
+        : i_index === 0
+          ? "output_main"
+          : "output_" + String(i_index + 1),
+    s_label:
+      typeof o_item.s_label === "string" && o_item.s_label.trim() !== ""
+        ? o_item.s_label.trim()
+        : i_index === 0
+          ? "Startdaten"
+          : "Output " + String(i_index + 1),
+    s_description:
+      typeof o_item.s_description === "string" ? o_item.s_description : "Daten des Start Nodes",
+  }));
+}
+
+function render_value_input(
+  o_output: TStartOutputItem,
+  on_change: (value: unknown) => void,
+): JSX.Element {
+  if (o_output.s_type === "int") {
+    return (
+      <input
+        type="number"
+        value={typeof o_output.value === "number" ? String(o_output.value) : ""}
+        onChange={(o_event) => {
+          const i_value = Number.parseInt(o_event.target.value, 10);
+          on_change(Number.isFinite(i_value) ? i_value : 0);
+        }}
+        style={get_input_style()}
+      />
+    );
+  }
+
+  if (o_output.s_type === "float") {
+    return (
+      <input
+        type="number"
+        step="0.01"
+        value={typeof o_output.value === "number" ? String(o_output.value) : ""}
+        onChange={(o_event) => {
+          const d_value = Number.parseFloat(o_event.target.value);
+          on_change(Number.isFinite(d_value) ? d_value : 0);
+        }}
+        style={get_input_style()}
+      />
+    );
+  }
+
+  if (o_output.s_type === "array") {
+    return (
+      <textarea
+        value={typeof o_output.value === "string" ? o_output.value : ""}
+        onChange={(o_event) => {
+          on_change(o_event.target.value);
+        }}
+        style={{ ...get_input_style(), resize: "vertical", minHeight: "88px", fontFamily: "monospace" }}
+      />
+    );
+  }
+
+  if (o_output.s_type === "object") {
+    return (
+      <textarea
+        value={typeof o_output.value === "string" ? o_output.value : ""}
+        onChange={(o_event) => {
+          on_change(o_event.target.value);
+        }}
+        style={{ ...get_input_style(), resize: "vertical", minHeight: "110px", fontFamily: "monospace" }}
+      />
+    );
+  }
+
+  return (
+    <input
+      value={typeof o_output.value === "string" ? o_output.value : ""}
+      onChange={(o_event) => {
+        on_change(o_event.target.value);
+      }}
+      style={get_input_style()}
+    />
+  );
+}
+
+export function StartNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as IStartNodeData) || ({} as IStartNodeData);
+  const { update_node_data } = use_workflow_store();
+  const a_outputs = normalize_output_items((o_data as Record<string, unknown>) || {});
+  const a_output_handles = build_output_handles_from_items(a_outputs);
+
+  function update_outputs(a_next_outputs: TStartOutputItem[]): void {
+    const a_safe_outputs = a_next_outputs.length > 0 ? a_next_outputs : [get_default_output_item(0)];
+
+    update_node_data(id, {
+      a_outputs: a_safe_outputs,
+      output_handles: build_output_handles_from_items(a_safe_outputs),
+    });
+  }
+
+  function update_output_field(i_index: number, s_key: keyof TStartOutputItem, value: unknown): void {
+    const a_next_outputs = [...a_outputs];
+    const o_current = a_next_outputs[i_index];
+    if (!o_current) {
+      return;
+    }
+
+    const o_next: TStartOutputItem = {
+      ...o_current,
+      [s_key]: value,
+    };
+
+    if (s_key === "s_key") {
+      const s_value = String(value || "").trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_");
+      o_next.s_key = s_value === "" ? create_output_id() : s_value;
+    }
+
+    a_next_outputs[i_index] = o_next;
+    update_outputs(a_next_outputs);
+  }
+
+  function on_add_output(): void {
+    const a_next_outputs = [...a_outputs];
+    a_next_outputs.push(get_default_output_item(a_next_outputs.length));
+    update_outputs(a_next_outputs);
+  }
+
+  function on_delete_output(i_index: number): void {
+    if (a_outputs.length <= 1) {
+      return;
+    }
+    const a_next_outputs = a_outputs.filter((_o_item, i_current_index) => i_current_index !== i_index);
+    update_outputs(a_next_outputs);
+  }
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div style={get_node_header_style("rgba(209, 250, 229, 0.92)", "#86efac")}>
+        <NodeHeaderTitle
+          s_kind="start"
+          s_title="Start"
+          s_subtitle={"Outputs: " + String(a_outputs.length)}
+        />
+        <NodeDeleteButton id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          Outputs {a_outputs.length}
+        </div>
+
+        <NodeDetailsSection
+          s_title="Outputs"
+          s_meta={String(a_outputs.length)}
+          b_default_open={false}
+        >
+          {a_outputs.map((o_output, i_index) => (
+            <div key={String(o_output.s_key || i_index)} style={get_box_style()}>
+              <label style={get_label_style()}>label</label>
+              <input
+                value={o_output.s_label}
+                onChange={(o_event) => {
+                  update_output_field(i_index, "s_label", o_event.target.value);
+                }}
+                style={get_input_style()}
+              />
+
+              <label style={get_label_style()}>key</label>
+              <input
+                value={o_output.s_key}
+                onChange={(o_event) => {
+                  update_output_field(i_index, "s_key", o_event.target.value);
+                }}
+                style={get_input_style()}
+              />
+
+              <label style={get_label_style()}>type</label>
+              <select
+                value={o_output.s_type}
+                onChange={(o_event) => {
+                  update_output_field(i_index, "s_type", o_event.target.value as TStartOutputType);
+                }}
+                style={get_input_style()}
+              >
+                <option value="string">String</option>
+                <option value="int">Int</option>
+                <option value="float">Float</option>
+                <option value="array">Array</option>
+                <option value="object">Object</option>
+              </select>
+
+              <label style={get_label_style()}>value</label>
+              {render_value_input(o_output, (value: unknown) => {
+                update_output_field(i_index, "value", value);
+              })}
+
+              <label style={get_label_style()}>description</label>
+              <input
+                value={o_output.s_description}
+                onChange={(o_event) => {
+                  update_output_field(i_index, "s_description", o_event.target.value);
+                }}
+                style={get_input_style()}
+              />
+
+              <div style={get_button_row_style()}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    on_delete_output(i_index);
+                  }}
+                  disabled={a_outputs.length <= 1}
+                  style={{
+                    ...get_button_style("danger"),
+                    opacity: a_outputs.length <= 1 ? 0.5 : 1,
+                    cursor: a_outputs.length <= 1 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Delete Output
+                </button>
+              </div>
+            </div>
+          ))}
+
+          <div style={get_button_row_style()}>
+            <button
+              type="button"
+              onClick={() => {
+                on_add_output();
+              }}
+              style={get_button_style("primary")}
+            >
+              Add Output
+            </button>
+          </div>
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/switch_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/switch_node.tsx
+description: Darstellung des Switch Nodes mit kompaktem Design,
+sichtbaren Handles und aufklappbaren Details.
+history:
+- 2026-04-03: Erstellt analog zum Condition Node fuer Switch mit Cases und Default Ausgang. author Marcus Schlieper
+- 2026-04-06: Auf input_handles und output_handles mit sicheren Defaults umgestellt. author Marcus Schlieper
+- 2026-04-06: Sichtbare kopierbare Handle Labels und Runtime Ergebnisanzeige ergaenzt. author Marcus Schlieper
+- 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+- 2026-04-12: Add case und dynamische Case Outputs rechts ergaenzt. author Marcus Schlieper
+author Marcus Schlieper
+*/
+
+import React from "react";
+import { NodeProps } from "@xyflow/react";
+import { ISwitchNodeData } from "../../types/workflow";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  NodeHeaderTitle,
+  get_input_style,
+  get_label_style,
+  get_meta_style,
+  get_node_body_style,
+  get_node_header_style,
+  get_node_wrapper_style,
+  get_safe_handle_definitions,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+} from "./node_runtime_helpers";
+
+function create_case_id(): string {
+  return "case_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
+}
+
+function get_case_row_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    padding: "10px",
+    backgroundColor: "#f8fafc",
+  };
+}
+
+function get_button_row_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  };
+}
+
+function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties {
+  return {
+    border: "1px solid " + (s_variant === "danger" ? "#dc2626" : "#2563eb"),
+    borderRadius: "10px",
+    padding: "8px 10px",
+    backgroundColor: s_variant === "danger" ? "#fef2f2" : "#eff6ff",
+    color: s_variant === "danger" ? "#b91c1c" : "#1d4ed8",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+  };
+}
+
+export function SwitchNode({ id, data }: NodeProps): JSX.Element {
+  const o_data = (data as ISwitchNodeData) || ({} as ISwitchNodeData);
+  const { update_node_data } = use_workflow_store();
+
+  const a_cases = Array.isArray(o_data.cases) ? o_data.cases : [];
+
+  const a_input_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).input_handles,
+    [
+      {
+        s_key: "input_main",
+        s_label: "Pruefdaten",
+        s_description: "Daten fuer die Auswahl",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const a_case_output_handles: THandleDefinition[] = a_cases.map((o_case, i_index) => {
+    const s_case_value =
+      o_case && typeof o_case.s_value === "string" && o_case.s_value.trim() !== ""
+        ? o_case.s_value.trim()
+        : "case_" + String(i_index + 1);
+
+    return {
+      s_key: "case_" + String(i_index + 1),
+      s_label: s_case_value,
+      s_description: "Ausgang fuer " + s_case_value,
+    };
+  });
+
+  const a_output_handles = get_safe_handle_definitions(
+    (o_data as Record<string, unknown>).output_handles,
+    [
+      ...a_case_output_handles,
+      {
+        s_key: "default",
+        s_label: "default",
+        s_description: "Standard Ausgang",
+      },
+      {
+        s_key: "output_main",
+        s_label: "Ergebnis",
+        s_description: "Standard Ergebnis",
+      },
+    ] as THandleDefinition[],
+  );
+
+  const s_if_left = typeof o_data.s_if_left === "string" ? o_data.s_if_left : "";
+  const s_default = typeof o_data.s_default === "string" ? o_data.s_default : "";
+
+  function sync_case_output_handles(a_next_cases: Array<Record<string, unknown>>): void {
+    const a_next_output_handles: THandleDefinition[] = a_next_cases.map((o_case, i_index) => {
+      const s_case_value =
+        typeof o_case.s_value === "string" && o_case.s_value.trim() !== ""
+          ? o_case.s_value.trim()
+          : "case_" + String(i_index + 1);
+
+      return {
+        s_key: "case_" + String(i_index + 1),
+        s_label: s_case_value,
+        s_description: "Ausgang fuer " + s_case_value,
+      };
+    });
+
+    a_next_output_handles.push({
+      s_key: "default",
+      s_label: "default",
+      s_description: "Standard Ausgang",
+    });
+
+    a_next_output_handles.push({
+      s_key: "output_main",
+      s_label: "Ergebnis",
+      s_description: "Standard Ergebnis",
+    });
+
+    update_node_data(id, {
+      cases: a_next_cases,
+      output_handles: a_next_output_handles,
+    });
+  }
+
+  function on_add_case(): void {
+    const a_next_cases = [
+      ...a_cases,
+      {
+        s_id: create_case_id(),
+        s_value: "",
+      },
+    ];
+    sync_case_output_handles(a_next_cases as Array<Record<string, unknown>>);
+  }
+
+  function on_delete_case(i_index: number): void {
+    if (i_index < 0 || i_index >= a_cases.length) {
+      return;
+    }
+
+    const a_next_cases = a_cases.filter(
+      (_o_item, i_current_index) => i_current_index !== i_index,
+    );
+    sync_case_output_handles(a_next_cases as Array<Record<string, unknown>>);
+  }
+
+  function on_update_case_value(i_index: number, s_value: string): void {
+    const a_next_cases = [...a_cases];
+    const o_current_case =
+      a_next_cases[i_index] && typeof a_next_cases[i_index] === "object"
+        ? { ...(a_next_cases[i_index] as Record<string, unknown>) }
+        : { s_id: create_case_id() };
+
+    o_current_case.s_value = s_value;
+
+    if (
+      typeof o_current_case.s_id !== "string" ||
+      o_current_case.s_id.trim() === ""
+    ) {
+      o_current_case.s_id = create_case_id();
+    }
+
+    a_next_cases[i_index] = o_current_case;
+    sync_case_output_handles(a_next_cases as Array<Record<string, unknown>>);
+  }
+
+  return (
+    <div style={get_node_wrapper_style()}>
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={((o_data as unknown) as Record<string, unknown>) || {}} />
+
+      <div style={get_node_header_style("rgba(249, 115, 22, 0.18)", "rgba(249, 115, 22, 0.28)")}>
+        <NodeHeaderTitle
+          s_kind="switch"
+          s_title={typeof o_data.s_label === "string" && o_data.s_label.trim() !== "" ? o_data.s_label : "Switch"}
+          s_subtitle="Case routing"
+        />
+        <NodeDeleteButton node_id={id} />
+      </div>
+
+      <div style={get_node_body_style()}>
+        <div style={get_meta_style()}>
+          if left - {a_cases.length} cases - 1 default
+        </div>
+
+        <NodeDetailsSection
+          s_title="Details"
+          s_meta={a_cases.length + " cases"}
+          b_default_open={true}
+        >
+          <label style={get_label_style()}>
+            if left
+            <input
+              value={s_if_left}
+              onChange={(o_event) => {
+                update_node_data(id, { s_if_left: o_event.target.value });
+              }}
+              style={get_input_style()}
+            />
+          </label>
+
+          {a_cases.length > 0 ? (
+            a_cases.map((o_case, i_index) => {
+              const s_case_value =
+                o_case && typeof o_case.s_value === "string"
+                  ? o_case.s_value
+                  : "";
+
+              return (
+                <div key={typeof o_case?.s_id === "string" ? o_case.s_id : "case_" + String(i_index)} style={get_case_row_style()}>
+                  <label style={get_label_style()}>
+                    {"case" + String(i_index + 1)}
+                    <input
+                      value={s_case_value}
+                      onChange={(o_event) => {
+                        on_update_case_value(i_index, o_event.target.value);
+                      }}
+                      style={get_input_style()}
+                    />
+                  </label>
+
+                  <div style={get_meta_style()}>
+                    output handle: case_{String(i_index + 1)}
+                  </div>
+
+                  <div style={get_button_row_style()}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        on_delete_case(i_index);
+                      }}
+                      style={get_button_style("danger")}
+                    >
+                      Delete Case
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div style={get_meta_style()}>No cases</div>
+          )}
+
+          <div style={get_button_row_style()}>
+            <button
+              type="button"
+              onClick={() => {
+                on_add_case();
+              }}
+              style={get_button_style("primary")}
+            >
+              Add Case
+            </button>
+          </div>
+
+          <label style={get_label_style()}>
+            default
+            <input
+              value={s_default}
+              onChange={(o_event) => {
+                update_node_data(id, { s_default: o_event.target.value });
+              }}
+              style={get_input_style()}
+            />
+          </label>
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={((o_data as unknown) as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+file: src/components/nodes/tool_node.tsx
+================================================================
+/* file: frontend/src/components/nodes/tool_node.tsx
+description: Generische Darstellung fuer JSON basierte Tool Nodes mit
+kompaktem Design, sichtbaren Handles und Anzeige des gleichen Icons
+wie im tool_tree_panel fuer nicht Standard Workflow Nodes.
+history:
+- 2026-03-28: Erstellt fuer dynamische Tool Node Anzeige und Inline Bearbeitung. author Marcus Schlieper
+- 2026-03-28: Komplett ueberarbeitet fuer saubere Node Box und geordnetes Formular Layout. author Marcus Schlieper
+- 2026-03-29: Header Farbe wird direkt aus tool.s_color uebernommen. author Marcus Schlieper
+- 2026-04-06: Benannte Handle Definitionen mit Rueckwaertskompatibilitaet zu String Listen erweitert. author Marcus Schlieper
+- 2026-04-06: Runtime Ergebnisanzeige und sichtbare Handle Labels ergaenzt. author Marcus Schlieper
+- 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
+- 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
+- 2026-04-11: Details einklappbar gemacht und Header Icon Design an neues Node Layout angepasst. author Marcus Schlieper
+- 2026-04-11: Nicht Standard Workflow Nodes nutzen jetzt dasselbe Icon wie im tool_tree_panel. author Marcus Schlieper
+author Marcus Schlieper
+*/
+import React from "react";
+import type { CSSProperties, JSX } from "react";
+import { type NodeProps } from "@xyflow/react";
+import {
+  Activity,
+  AlignLeft,
+  Archive,
+  ArrowDownToLine,
+  ArrowUpToLine,
+  AtSign,
+  AudioLines,
+  AudioWaveform,
+  BadgeCheck,
+  BadgeEuro,
+  Barcode,
+  BarChart3,
+  Bell,
+  Binary,
+  BookOpenCheck,
+  Bot,
+  Braces,
+  Briefcase,
+  BriefcaseBusiness,
+  Building,
+  Calendar,
+  CalendarRange,
+  CalendarSearch,
+  CalendarSync,
+  CalendarX,
+  CheckCheck,
+  CheckCircle,
+  CheckSquare,
+  Clapperboard,
+  ClipboardList,
+  Cloud,
+  Code2,
+  CodeXml,
+  ContactRound,
+  Copy,
+  CopyPlus,
+  Cylinder,
+  Database,
+  Download,
+  Expand,
+  File,
+  FileCode,
+  FileInput,
+  FileJson,
+  FileOutput,
+  FilePlus,
+  FileSearch,
+  FileText,
+  Flag,
+  Folder,
+  FolderPlus,
+  Forward,
+  GitBranch,
+  Globe,
+  Globe2,
+  Hash,
+  HeartPulse,
+  Image,
+  ImagePlus,
+  Inbox,
+  Key,
+  KeyRound,
+  KeySquare,
+  Languages,
+  Layers,
+  Link,
+  List,
+  ListChecks,
+  Lock,
+  Logs,
+  Mail,
+  MailOpen,
+  MemoryStick,
+  MessageCircle,
+  MessageSquare,
+  Mic,
+  Minimize,
+  Move,
+  Newspaper,
+  NotebookPen,
+  PackageOpen,
+  PenTool,
+  PhoneCall,
+  PhoneOff,
+  Play,
+  Plus,
+  PlusSquare,
+  Presentation,
+  Printer,
+  QrCode,
+  Radar,
+  Receipt,
+  RefreshCcw,
+  Repeat,
+  Reply,
+  Replace,
+  Rss,
+  Save,
+  Scan,
+  ScanFace,
+  ScanText,
+  Scissors,
+  Search,
+  SearchCheck,
+  Send,
+  SendHorizontal,
+  Server,
+  ServerCog,
+  ServerCrash,
+  Sheet,
+  Shield,
+  ShieldCheck,
+  ShoppingCart,
+  Shuffle,
+  Smile,
+  Smartphone,
+  Sparkles,
+  Split,
+  Star,
+  StickyNote,
+  Table,
+  TableProperties,
+  Tag,
+  Tags,
+  Trash,
+  Trash2,
+  TriangleAlert,
+  Unlock,
+  Upload,
+  UserCog,
+  UserPlus,
+  Users,
+  Video,
+  Volume2,
+  Wand2,
+  Webhook,
+  Workflow,
+  XCircle,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { NodeDeleteButton } from "../node_delete_button";
+import { use_workflow_store } from "../../store/workflow_store";
+import { use_tool_registry_store } from "../../store/tool_registry_store";
+import type {
+  IToolNodeData,
+  IToolFieldDefinition,
+} from "../../types/tool_registry";
+import { ToolVariableSelector } from "../tool_variable_selector";
+import {
+  THandleDefinition,
+  NodeDetailsSection,
+  RenderEventHandles,
+  RenderNamedHandles,
+  RenderRuntimeResult,
+  get_meta_style,
+  get_input_style as get_shared_input_style,
+} from "./node_runtime_helpers";
+
+function get_string_value(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+  return "";
+}
+
+function get_safe_text(value: unknown, s_fallback = ""): string {
+  if (typeof value === "string") {
+    const s_trimmed = value.trim();
+    return s_trimmed !== "" ? s_trimmed : s_fallback;
+  }
+  return s_fallback;
+}
+
+function get_number_value(value: unknown, d_fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  const d_value = Number(value);
+  if (Number.isFinite(d_value)) {
+    return d_value;
+  }
+  return d_fallback;
+}
+
+function get_boolean_value(value: unknown): boolean {
+  return value === true;
+}
+
+function get_safe_color(s_color: unknown, s_fallback = "#2563eb"): string {
+  if (typeof s_color !== "string") {
+    return s_fallback;
+  }
+  const s_trimmed = s_color.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(s_trimmed) || /^#[0-9a-fA-F]{3}$/.test(s_trimmed)) {
+    return s_trimmed;
+  }
+  return s_fallback;
+}
+
+function hex_to_rgba(s_hex_color: string, d_alpha: number): string {
+  const s_safe_hex_color = get_safe_color(s_hex_color);
+  let s_normalized = s_safe_hex_color.replace("#", "");
+  if (s_normalized.length === 3) {
+    s_normalized =
+      s_normalized[0] +
+      s_normalized[0] +
+      s_normalized[1] +
+      s_normalized[1] +
+      s_normalized[2] +
+      s_normalized[2];
+  }
+  const i_red = parseInt(s_normalized.slice(0, 2), 16);
+  const i_green = parseInt(s_normalized.slice(2, 4), 16);
+  const i_blue = parseInt(s_normalized.slice(4, 6), 16);
+  if (!Number.isFinite(i_red) || !Number.isFinite(i_green) || !Number.isFinite(i_blue)) {
+    return "rgba(37, 99, 235, 0.12)";
+  }
+  return (
+    "rgba(" +
+    i_red +
+    ", " +
+    i_green +
+    ", " +
+    i_blue +
+    ", " +
+    d_alpha +
+    ")"
+  );
+}
+
+function get_node_wrapper_style(s_tool_color: string, b_selected: boolean): CSSProperties {
+  return {
+    width: "320px",
+    border: "1px solid " + (b_selected ? s_tool_color : "#dbe2ea"),
+    borderRadius: "18px",
+    backgroundColor: "#ffffff",
+    boxShadow: b_selected
+      ? "0 0 0 3px " + hex_to_rgba(s_tool_color, 0.18)
+      : "0 14px 32px rgba(17, 24, 39, 0.08)",
+    overflow: "visible",
+    position: "relative",
+    paddingBottom: "46px",
+  };
+}
+
+function get_header_style(s_tool_color: string): CSSProperties {
+  return {
+    padding: "12px 14px",
+    background:
+      "linear-gradient(180deg, " +
+      hex_to_rgba(s_tool_color, 0.18) +
+      " 0%, rgba(255,255,255,0.98) 100%)",
+    borderBottom: "1px solid " + hex_to_rgba(s_tool_color, 0.28),
+    borderRadius: "18px 18px 0 0",
+  };
+}
+
+function get_header_top_row_style(): CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: "8px",
+  };
+}
+
+function get_header_title_row_style(): CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    minWidth: 0,
+  };
+}
+
+function get_color_chip_style(s_tool_color: string): CSSProperties {
+  return {
+    width: "12px",
+    height: "12px",
+    borderRadius: "999px",
+    backgroundColor: s_tool_color,
+    border: "1px solid rgba(0, 0, 0, 0.15)",
+    flexShrink: 0,
+    marginTop: "3px",
+  };
+}
+
+function get_header_text_wrap_style(): CSSProperties {
+  return {
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+  };
+}
+
+function get_title_style(): CSSProperties {
+  return {
+    margin: 0,
+    fontSize: "14px",
+    fontWeight: 700,
+    color: "#111827",
+    lineHeight: 1.3,
+    wordBreak: "break-word",
+  };
+}
+
+function get_type_style(): CSSProperties {
+  return {
+    margin: 0,
+    fontSize: "11px",
+    color: "#4b5563",
+    wordBreak: "break-word",
+  };
+}
+
+function get_description_style(): CSSProperties {
+  return {
+    margin: "8px 0 0 0",
+    fontSize: "12px",
+    lineHeight: 1.5,
+    color: "#374151",
+    wordBreak: "break-word",
+  };
+}
+
+function get_body_style(): CSSProperties {
+  return {
+    padding: "12px 14px 10px 14px",
+    backgroundColor: "#ffffff",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  };
+}
+
+function get_field_wrapper_style(): CSSProperties {
+  return {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+    marginBottom: "10px",
+  };
+}
+
+function get_label_style(): CSSProperties {
+  return {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#374151",
+  };
+}
+
+function get_input_style(): CSSProperties {
+  return get_shared_input_style();
+}
+
+function get_tool_panel_icon_box_style(s_tool_color: string): CSSProperties {
+  return {
+    width: "34px",
+    height: "34px",
+    minWidth: "34px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background:
+      "linear-gradient(180deg, " +
+      hex_to_rgba(s_tool_color, 0.18) +
+      " 0%, rgba(255,255,255,0.98) 100%)",
+    border: "1px solid " + hex_to_rgba(s_tool_color, 0.28),
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)",
+    color: s_tool_color,
+    flexShrink: 0,
+  };
+}
+
+function get_icon_component_by_name(s_icon: string): LucideIcon {
+  const o_icon_map: Record<string, LucideIcon> = {
+    activity: Activity,
+    align_left: AlignLeft,
+    "align-left": AlignLeft,
+    archive: Archive,
+    arrow_down_to_line: ArrowDownToLine,
+    "arrow-down-to-line": ArrowDownToLine,
+    arrow_up_to_line: ArrowUpToLine,
+    "arrow-up-to-line": ArrowUpToLine,
+    at_sign: AtSign,
+    "at-sign": AtSign,
+    audio_lines: AudioLines,
+    "audio-lines": AudioLines,
+    audio_waveform: AudioWaveform,
+    "audio-waveform": AudioWaveform,
+    badge_check: BadgeCheck,
+    "badge-check": BadgeCheck,
+    badge_euro: BadgeEuro,
+    "badge-euro": BadgeEuro,
+    barcode: Barcode,
+    bar_chart_3: BarChart3,
+    "bar-chart-3": BarChart3,
+    bell: Bell,
+    binary: Binary,
+    book_open_check: BookOpenCheck,
+    "book-open-check": BookOpenCheck,
+    bot: Bot,
+    braces: Braces,
+    briefcase: Briefcase,
+    briefcase_business: BriefcaseBusiness,
+    "briefcase-business": BriefcaseBusiness,
+    building: Building,
+    calendar: Calendar,
+    calendar_range: CalendarRange,
+    "calendar-range": CalendarRange,
+    calendar_search: CalendarSearch,
+    "calendar-search": CalendarSearch,
+    calendar_sync: CalendarSync,
+    "calendar-sync": CalendarSync,
+    calendar_x: CalendarX,
+    "calendar-x": CalendarX,
+    check_check: CheckCheck,
+    "check-check": CheckCheck,
+    check_circle: CheckCircle,
+    "check-circle": CheckCircle,
+    check_square: CheckSquare,
+    "check-square": CheckSquare,
+    clapperboard: Clapperboard,
+    clipboard_list: ClipboardList,
+    "clipboard-list": ClipboardList,
+    cloud: Cloud,
+    code_2: Code2,
+    "code-2": Code2,
+    code_xml: CodeXml,
+    "code-xml": CodeXml,
+    comment: MessageSquare,
+    message_square: MessageSquare,
+    "message-square": MessageSquare,
+    contact: ContactRound,
+    contact_round: ContactRound,
+    "contact-round": ContactRound,
+    copy: Copy,
+    copy_plus: CopyPlus,
+    "copy-plus": CopyPlus,
+    cylinder: Cylinder,
+    database: Database,
+    download: Download,
+    expand: Expand,
+    file: File,
+    file_code: FileCode,
+    "file-code": FileCode,
+    file_input: FileInput,
+    "file-input": FileInput,
+    file_json: FileJson,
+    "file-json": FileJson,
+    file_output: FileOutput,
+    "file-output": FileOutput,
+    file_plus: FilePlus,
+    "file-plus": FilePlus,
+    file_search: FileSearch,
+    "file-search": FileSearch,
+    file_text: FileText,
+    "file-text": FileText,
+    flag: Flag,
+    folder: Folder,
+    folder_plus: FolderPlus,
+    "folder-plus": FolderPlus,
+    forward: Forward,
+    git_branch: GitBranch,
+    "git-branch": GitBranch,
+    globe: Globe,
+    globe_2: Globe2,
+    "globe-2": Globe2,
+    hash: Hash,
+    heart_pulse: HeartPulse,
+    "heart-pulse": HeartPulse,
+    image: Image,
+    image_plus: ImagePlus,
+    "image-plus": ImagePlus,
+    inbox: Inbox,
+    key: Key,
+    key_round: KeyRound,
+    "key-round": KeyRound,
+    key_square: KeySquare,
+    "key-square": KeySquare,
+    languages: Languages,
+    layers: Layers,
+    link: Link,
+    list: List,
+    list_checks: ListChecks,
+    "list-checks": ListChecks,
+    lock: Lock,
+    logs: Logs,
+    mail: Mail,
+    mail_open: MailOpen,
+    "mail-open": MailOpen,
+    memory_stick: MemoryStick,
+    "memory-stick": MemoryStick,
+    message_circle: MessageCircle,
+    "message-circle": MessageCircle,
+    mic: Mic,
+    minimize: Minimize,
+    move: Move,
+    newspaper: Newspaper,
+    notebook_pen: NotebookPen,
+    "notebook-pen": NotebookPen,
+    package_open: PackageOpen,
+    "package-open": PackageOpen,
+    pen_tool: PenTool,
+    "pen-tool": PenTool,
+    phone_call: PhoneCall,
+    "phone-call": PhoneCall,
+    phone_off: PhoneOff,
+    "phone-off": PhoneOff,
+    play: Play,
+    plus: Plus,
+    plus_square: PlusSquare,
+    "plus-square": PlusSquare,
+    presentation: Presentation,
+    printer: Printer,
+    qr_code: QrCode,
+    "qr-code": QrCode,
+    radar: Radar,
+    receipt: Receipt,
+    refresh_ccw: RefreshCcw,
+    "refresh-ccw": RefreshCcw,
+    repeat: Repeat,
+    reply: Reply,
+    replace: Replace,
+    rss: Rss,
+    save: Save,
+    scan: Scan,
+    scan_face: ScanFace,
+    "scan-face": ScanFace,
+    scan_text: ScanText,
+    "scan-text": ScanText,
+    scissors: Scissors,
+    search: Search,
+    search_check: SearchCheck,
+    "search-check": SearchCheck,
+    send: Send,
+    send_horizontal: SendHorizontal,
+    "send-horizontal": SendHorizontal,
+    server: Server,
+    server_cog: ServerCog,
+    "server-cog": ServerCog,
+    server_crash: ServerCrash,
+    "server-crash": ServerCrash,
+    sheet: Sheet,
+    shield: Shield,
+    shield_check: ShieldCheck,
+    "shield-check": ShieldCheck,
+    shopping_cart: ShoppingCart,
+    "shopping-cart": ShoppingCart,
+    shuffle: Shuffle,
+    smile: Smile,
+    smartphone: Smartphone,
+    sparkles: Sparkles,
+    split: Split,
+    star: Star,
+    sticky_note: StickyNote,
+    "sticky-note": StickyNote,
+    table: Table,
+    table_properties: TableProperties,
+    "table-properties": TableProperties,
+    tag: Tag,
+    tags: Tags,
+    trash: Trash,
+    trash_2: Trash2,
+    "trash-2": Trash2,
+    triangle_alert: TriangleAlert,
+    "triangle-alert": TriangleAlert,
+    unlock: Unlock,
+    upload: Upload,
+    user_cog: UserCog,
+    "user-cog": UserCog,
+    user_plus: UserPlus,
+    "user-plus": UserPlus,
+    users: Users,
+    video: Video,
+    volume_2: Volume2,
+    "volume-2": Volume2,
+    wand_2: Wand2,
+    "wand-2": Wand2,
+    webhook: Webhook,
+    workflow: Workflow,
+    x_circle: XCircle,
+    "x-circle": XCircle,
+  };
+  const s_safe_icon = s_icon.trim().toLowerCase();
+  return o_icon_map[s_safe_icon] ?? Layers;
+}
+
+function render_schema_icon(s_icon: string, s_tool_color: string): JSX.Element {
+  const IconComponent = get_icon_component_by_name(s_icon);
+  return (
+    <div style={get_tool_panel_icon_box_style(s_tool_color)}>
+      <IconComponent size={18} strokeWidth={2} />
+    </div>
+  );
+}
+
+function normalize_handle_list(
+  a_handles: unknown,
+  s_prefix: "input" | "output",
+  s_default_label: string,
+): THandleDefinition[] {
+  if (!Array.isArray(a_handles) || a_handles.length === 0) {
+    return [
+      {
+        s_key: s_prefix + "_main",
+        s_label: s_default_label,
+        s_description: "",
+      },
+    ];
+  }
+  return a_handles
+    .map((o_item, i_index) => {
+      if (typeof o_item === "string") {
+        return {
+          s_key: o_item,
+          s_label: o_item,
+          s_description: "",
+        };
+      }
+      if (typeof o_item === "object" && o_item !== null) {
+        const o_handle = o_item as THandleDefinition;
+        return {
+          s_key:
+            typeof o_handle.s_key === "string" && o_handle.s_key.trim() !== ""
+              ? o_handle.s_key.trim()
+              : s_prefix + "_" + String(i_index + 1),
+          s_label:
+            typeof o_handle.s_label === "string" && o_handle.s_label.trim() !== ""
+              ? o_handle.s_label.trim()
+              : typeof o_handle.s_key === "string" && o_handle.s_key.trim() !== ""
+                ? o_handle.s_key.trim()
+                : s_prefix + "_" + String(i_index + 1),
+          s_description:
+            typeof o_handle.s_description === "string" ? o_handle.s_description : "",
+        };
+      }
+      return {
+        s_key: s_prefix + "_" + String(i_index + 1),
+        s_label: s_prefix + "_" + String(i_index + 1),
+        s_description: "",
+      };
+    })
+    .filter(
+      (o_item) =>
+        typeof o_item.s_key === "string" && o_item.s_key.trim() !== "",
+    );
+}
+
+function render_input_field(
+  o_field: IToolFieldDefinition,
+  value: unknown,
+  update_value: (s_key: string, value: unknown) => void,
+): JSX.Element {
+  if (o_field.s_field_type === "textarea") {
+    return (
+      <textarea
+        value={get_string_value(value)}
+        onChange={(o_event) => update_value(o_field.s_key, o_event.target.value)}
+        rows={4}
+        style={{
+          ...get_input_style(),
+          resize: "vertical",
+          minHeight: "72px",
+          fontFamily: "inherit",
+        }}
+      />
+    );
+  }
+
+  if (o_field.s_field_type === "number") {
+    return (
+      <input
+        type="number"
+        value={String(get_number_value(value, o_field.d_default ?? 0))}
+        onChange={(o_event) => {
+          const d_value = Number(o_event.target.value);
+          const d_safe_value = Number.isFinite(d_value)
+            ? d_value
+            : o_field.d_default ?? 0;
+          update_value(o_field.s_key, d_safe_value);
+        }}
+        style={get_input_style()}
+      />
+    );
+  }
+
+  if (o_field.s_field_type === "select") {
+    return (
+      <select
+        value={get_string_value(value)}
+        onChange={(o_event) => update_value(o_field.s_key, o_event.target.value)}
+        style={get_input_style()}
+      >
+        <option value="">not_set</option>
+        {(o_field.a_options ?? []).map((o_option) => (
+          <option key={o_option.s_value} value={o_option.s_value}>
+            {o_option.s_label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (o_field.s_field_type === "checkbox") {
+    return (
+      <select
+        value={get_boolean_value(value) ? "true" : "false"}
+        onChange={(o_event) =>
+          update_value(o_field.s_key, o_event.target.value === "true")
+        }
+        style={get_input_style()}
+      >
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
+    );
+  }
+
+  if (o_field.s_field_type === "variable_select") {
+    return (
+      <ToolVariableSelector
+        s_value={get_string_value(value)}
+        on_change={(s_value) => update_value(o_field.s_key, s_value)}
+      />
+    );
+  }
+
+  return (
+    <input
+      type="text"
+      value={get_string_value(value)}
+      onChange={(o_event) => update_value(o_field.s_key, o_event.target.value)}
+      style={get_input_style()}
+    />
+  );
+}
+
+export function ToolNode({ id, data, type, selected }: NodeProps): JSX.Element {
+  const o_data = data as IToolNodeData;
+  const { update_node_data } = use_workflow_store();
+  const { get_tool_schema_by_type } = use_tool_registry_store();
+
+  const s_tool_type =
+    typeof o_data.s_tool_type === "string" && o_data.s_tool_type.trim() !== ""
+      ? o_data.s_tool_type
+      : typeof type === "string"
+        ? type
+        : "";
+
+  const o_schema = get_tool_schema_by_type(s_tool_type);
+
+  const s_tool_color = get_safe_color(
+    o_data.tool?.s_color ?? o_schema?.tool?.s_color ?? o_data.s_color ?? "#2563eb",
+    "#2563eb",
+  );
+
+  const s_tool_label = get_safe_text(
+    o_schema?.s_label ?? o_data.s_label ?? "Tool",
+    "Tool",
+  );
+
+  const s_tool_icon = get_safe_text(
+    o_schema?.s_icon ?? o_data.s_icon ?? o_data.tool?.s_icon ?? "layers",
+    "layers",
+  );
+
+  function update_value(s_key: string, value: unknown): void {
+    update_node_data(
+      id,
+      {
+        [s_key]: value,
+      } as Partial<IToolNodeData>,
+    );
+  }
+
+  const a_input_handles = normalize_handle_list(
+    o_schema?.a_input_handles ?? (o_data as Record<string, unknown>).input_handles ?? ["input_main"],
+    "input",
+    "Eingabe",
+  );
+
+  const a_output_handles = normalize_handle_list(
+    o_schema?.a_output_handles ?? (o_data as Record<string, unknown>).output_handles ?? ["output_main"],
+    "output",
+    "Ergebnis",
+  );
+
+  return (
+    <div style={get_node_wrapper_style(s_tool_color, selected === true)}>
+      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
+      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+
+      <div style={get_header_style(s_tool_color)}>
+        <div style={get_header_top_row_style()}>
+          <div style={get_header_title_row_style()}>
+            {render_schema_icon(s_tool_icon, s_tool_color)}
+            <div style={get_header_text_wrap_style()}>
+              <div style={get_title_style()}>{s_tool_label}</div>
+              <div style={get_type_style()}>{get_safe_text(s_tool_type, "tool")}</div>
+            </div>
+          </div>
+          <NodeDeleteButton id={id} />
+        </div>
+
+        {o_schema?.s_description ? (
+          <div style={get_description_style()}>{o_schema.s_description}</div>
+        ) : null}
+      </div>
+
+      <div style={get_body_style()}>
+        <div style={get_meta_style()}>
+          Inputs {a_input_handles.length} - Outputs {a_output_handles.length}
+        </div>
+
+        <NodeDetailsSection
+          s_title="Configuration"
+          s_meta="show"
+          b_default_open={false}
+        >
+          <div style={get_field_wrapper_style()}>
+            <label style={get_label_style()}>Label</label>
+            <input
+              type="text"
+              value={get_safe_text(o_data.s_label, s_tool_label)}
+              onChange={(o_event) => update_value("s_label", o_event.target.value)}
+              style={get_input_style()}
+            />
+          </div>
+
+          {o_schema ? (
+            o_schema.a_fields.map((o_field) => (
+              <div key={o_field.s_key} style={get_field_wrapper_style()}>
+                <label style={get_label_style()}>
+                  {o_field.s_label}
+                  {o_field.b_required ? " *" : ""}
+                </label>
+                {render_input_field(o_field, o_data[o_field.s_key], update_value)}
+              </div>
+            ))
+          ) : (
+            <div style={get_meta_style()}>tool_schema_missing</div>
+          )}
+        </NodeDetailsSection>
+
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+      </div>
+    </div>
+  );
+}
+
+

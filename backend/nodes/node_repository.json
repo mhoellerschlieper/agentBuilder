@@ -1,0 +1,90 @@
+{
+  "s_repository_name": "workflow_nodes",
+  "s_version": "1.0.0",
+  "nodes": [
+    {
+      "s_node_type": "start",
+      "s_module_path": "nodes.start.node_impl",
+      "s_class_name": "StartNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "end",
+      "s_module_path": "nodes.end.node_impl",
+      "s_class_name": "EndNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "http",
+      "s_module_path": "nodes.http.node_impl",
+      "s_class_name": "HttpNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "condition",
+      "s_module_path": "nodes.condition.node_impl",
+      "s_class_name": "ConditionNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "switch",
+      "s_module_path": "nodes.switch.node_impl",
+      "s_class_name": "SwitchNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "classifier",
+      "s_module_path": "nodes.classifier.node_impl",
+      "s_class_name": "ClassifierNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "loop",
+      "s_module_path": "nodes.loop.node_impl",
+      "s_class_name": "LoopNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "loop_for",
+      "s_module_path": "nodes.loop_for.node_impl",
+      "s_class_name": "LoopForNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "llm",
+      "s_module_path": "nodes.llm.node_impl",
+      "s_class_name": "LlmNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "code",
+      "s_module_path": "nodes.code.node_impl",
+      "s_class_name": "CodeNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "group",
+      "s_module_path": "nodes.group.node_impl",
+      "s_class_name": "GroupNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "comment",
+      "s_module_path": "nodes.comment.node_impl",
+      "s_class_name": "CommentNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    }
+  ]
+}

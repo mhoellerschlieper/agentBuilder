@@ -1,0 +1,10 @@
+# file: backend/requirements.txt
+# description: Python Abhaengigkeiten fuer das Backend.
+# history:
+# - 2026-03-25: Erstellt fuer Lowcode Backend. author Marcus Schlieper
+
+Flask==3.1.0
+flask-cors==5.0.1
+flask-socketio==5.5.1
+python-socketio==5.12.1
+eventlet==0.39.1
