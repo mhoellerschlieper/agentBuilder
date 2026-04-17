@@ -7,7 +7,7 @@ author Marcus Schlieper
 */
 import axios from "axios";
 
-const s_base_url = "http://localhost:8000/api";
+const s_base_url = "http://localhost:5000/api";
 const s_api_token = "change_this_token";
 
 const api_client = axios.create({
