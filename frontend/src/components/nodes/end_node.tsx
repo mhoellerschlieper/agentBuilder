@@ -16,7 +16,7 @@ author Marcus Schlieper
 */
 
 import React from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, useReactFlow } from "@xyflow/react";
 import { IEndNodeData } from "../../types/workflow";
 import { NodeDeleteButton } from "../node_delete_button";
 import { use_workflow_store } from "../../store/workflow_store";
@@ -37,11 +37,17 @@ import {
 } from "./node_runtime_helpers";
 
 export function EndNode({ id, data }: NodeProps): JSX.Element {
+  const { getNodes, getEdges } = useReactFlow();
+  const a_nodes = getNodes();
+  const a_edges = getEdges();
+
   const o_data = (data as IEndNodeData) || ({} as IEndNodeData);
   const { update_node_data } = use_workflow_store();
 
-  const a_legacy_outputs = Array.isArray((o_data as Record<string, unknown>).outputs)
-    ? (((o_data as Record<string, unknown>).outputs as unknown[]) || [])
+  const a_legacy_outputs = Array.isArray(
+    (o_data as Record<string, unknown>).outputs
+  )
+    ? ((o_data as Record<string, unknown>).outputs as unknown[]) || []
     : [];
 
   const a_input_handles = get_safe_handle_definitions(
@@ -52,7 +58,7 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Endergebnis",
         s_description: "Abschlussdaten des Workflows",
       },
-    ],
+    ]
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -63,7 +69,7 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Frontend Ergebnis",
         s_description: "Ergebnis fuer das Frontend",
       },
-    ],
+    ]
   );
 
   const b_success =
@@ -73,8 +79,8 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
     typeof (o_data as Record<string, unknown>).s_result === "string"
       ? ((o_data as Record<string, unknown>).s_result as string)
       : typeof o_data.s_query === "string"
-        ? o_data.s_query
-        : "{{input:input_main.value}}";
+      ? o_data.s_query
+      : "{{input:input_main.value}}";
 
   const s_preview =
     s_result.trim() !== "" ? s_result.trim().slice(0, 24) : "No result";
@@ -84,21 +90,30 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
       <RenderNamedHandles
         a_handles={a_input_handles}
         s_type="target"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderNamedHandles
         a_handles={a_output_handles}
         s_type="source"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(239, 68, 68, 0.16)", "rgba(239, 68, 68, 0.30)")}>
-        <NodeHeaderTitle
-          s_kind="end"
-          s_title="End"
-          s_subtitle={s_preview}
-        />
+      <div
+        style={get_node_header_style(
+          "rgba(239, 68, 68, 0.16)",
+          "rgba(239, 68, 68, 0.30)"
+        )}
+      >
+        <NodeHeaderTitle s_kind="end" s_title="End" s_subtitle={s_preview} />
         <NodeDeleteButton node_id={id} />
       </div>
 
@@ -107,13 +122,19 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
           {a_input_handles.length} inputs - {a_output_handles.length} outputs
         </div>
 
-        <NodeDetailsSection s_title="End settings" s_meta="result" b_default_open={false}>
+        <NodeDetailsSection
+          s_title="End settings"
+          s_meta="result"
+          b_default_open={false}
+        >
           <label>
             <span style={get_label_style()}>success</span>
             <select
               value={b_success ? "true" : "false"}
               onChange={(o_event) => {
-                update_node_data(id, { b_success: o_event.target.value === "true" });
+                update_node_data(id, {
+                  b_success: o_event.target.value === "true",
+                });
               }}
               style={get_input_style()}
             >
@@ -138,13 +159,19 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
           </label>
         </NodeDetailsSection>
 
-        <NodeDetailsSection s_title="Legacy info" s_meta="compat" b_default_open={false}>
+        <NodeDetailsSection
+          s_title="Legacy info"
+          s_meta="compat"
+          b_default_open={false}
+        >
           <div style={get_meta_style()}>
             {a_legacy_outputs.length} legacy outputs
           </div>
         </NodeDetailsSection>
 
-        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+        <RenderRuntimeResult
+          o_data={(o_data as Record<string, unknown>) || {}}
+        />
       </div>
     </div>
   );

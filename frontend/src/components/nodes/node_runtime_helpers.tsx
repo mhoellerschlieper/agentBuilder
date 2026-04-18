@@ -11,6 +11,7 @@ history:
 - 2026-04-13: Runtime Werte fuer Inputs und Outputs robuster gemacht und leserliche Handle Badges ergaenzt. author Marcus Schlieper
 author Marcus Schlieper
 */
+
 import React from "react";
 import { Handle, Position } from "@xyflow/react";
 import {
@@ -134,6 +135,7 @@ export function get_safe_handle_definitions(
       typeof o_handle.s_key === "string" && o_handle.s_key.trim() !== ""
         ? o_handle.s_key.trim()
         : "";
+
     const s_safe_label =
       typeof o_handle.s_label === "string" && o_handle.s_label.trim() !== ""
         ? o_handle.s_label.trim()
@@ -253,6 +255,7 @@ export function get_handle_runtime_value(
 
   const s_safe_key = s_handle_key.trim();
   const o_result = get_runtime_result(o_data);
+
   const a_candidate_roots =
     s_type === "source"
       ? ["output", "outputs", "result", "value"]
@@ -300,6 +303,120 @@ export function get_handle_runtime_value(
   return "";
 }
 
+function collect_template_paths(
+  o_value: unknown,
+  s_prefix: string,
+  a_result: string[],
+  i_depth: number,
+): void {
+  if (i_depth > 4) {
+    return;
+  }
+
+  if (o_value === null || typeof o_value === "undefined") {
+    return;
+  }
+
+  if (Array.isArray(o_value)) {
+    if (o_value.length === 0) {
+      return;
+    }
+
+    a_result.push(s_prefix);
+
+    const o_first_item = o_value[0];
+    if (o_first_item && typeof o_first_item === "object") {
+      collect_template_paths(o_first_item, s_prefix + "[0]", a_result, i_depth + 1);
+    }
+
+    return;
+  }
+
+  if (typeof o_value !== "object") {
+    a_result.push(s_prefix);
+    return;
+  }
+
+  const a_entries = Object.entries(o_value as TRecord);
+  if (a_entries.length === 0) {
+    a_result.push(s_prefix);
+    return;
+  }
+
+  for (const [s_key, o_child_value] of a_entries) {
+    const s_child_prefix = s_prefix + "." + s_key;
+    collect_template_paths(o_child_value, s_child_prefix, a_result, i_depth + 1);
+  }
+}
+
+function get_available_variable_suggestions(
+  o_data: TRecord | undefined,
+  s_type: "source" | "target",
+  s_handle_key: string,
+): string[] {
+  if (!o_data || !s_handle_key) {
+    return [];
+  }
+
+  const a_result: string[] = [];
+  const s_base = "{{" + (s_type === "source" ? "output" : "input") + ":" + s_handle_key;
+
+  a_result.push(s_base + "}}");
+
+  const a_candidates: unknown[] = [];
+
+  const o_runtime_result = get_runtime_result(o_data);
+  if (o_runtime_result && typeof o_runtime_result === "object") {
+    a_candidates.push(o_runtime_result);
+
+    if (s_type === "source") {
+      a_candidates.push(get_nested_value(o_runtime_result, ["output", s_handle_key]));
+      a_candidates.push(get_nested_value(o_runtime_result, ["outputs", s_handle_key]));
+      a_candidates.push(get_nested_value(o_runtime_result, [s_handle_key]));
+    } else {
+      a_candidates.push(get_nested_value(o_runtime_result, ["input", s_handle_key]));
+      a_candidates.push(get_nested_value(o_runtime_result, ["inputs", s_handle_key]));
+      a_candidates.push(get_nested_value(o_runtime_result, [s_handle_key]));
+    }
+  }
+
+  if (s_type === "source") {
+    a_candidates.push((o_data.output_values as unknown));
+  } else {
+    a_candidates.push((o_data.input_values as unknown));
+    a_candidates.push(o_data[s_handle_key]);
+  }
+
+  for (const o_candidate of a_candidates) {
+    if (!o_candidate || typeof o_candidate !== "object") {
+      continue;
+    }
+
+    const o_direct_value =
+      s_type === "source"
+        ? (o_candidate as TRecord)[s_handle_key]
+        : (o_candidate as TRecord)[s_handle_key];
+
+    if (typeof o_direct_value !== "undefined") {
+      collect_template_paths(
+        o_direct_value,
+        s_base,
+        a_result,
+        0,
+      );
+    } else {
+      collect_template_paths(
+        o_candidate,
+        s_base,
+        a_result,
+        0,
+      );
+    }
+  }
+
+  return Array.from(new Set(a_result)).slice(0, 24);
+}
+
 function get_handle_hover_text(
   o_handle: THandleDefinition,
   s_handle_key: string,
@@ -312,7 +429,13 @@ function get_handle_hover_text(
     typeof o_handle.s_description === "string" && o_handle.s_description.trim() !== ""
       ? o_handle.s_description.trim()
       : "";
+
   const s_runtime_value = get_handle_runtime_value(o_data, s_type, s_handle_key);
+  const a_variable_suggestions = get_available_variable_suggestions(
+    o_data,
+    s_type,
+    s_handle_key,
+  );
 
   const a_lines: string[] = [];
   a_lines.push(s_kind + ": " + s_handle_label);
@@ -324,6 +447,13 @@ function get_handle_hover_text(
 
   if (s_runtime_value !== "") {
     a_lines.push("Value: " + s_runtime_value);
+  }
+
+  if (a_variable_suggestions.length > 0) {
+    a_lines.push("Templates:");
+    for (const s_item of a_variable_suggestions) {
+      a_lines.push("- " + s_item);
+    }
   }
 
   return a_lines.join("\n");
@@ -942,61 +1072,93 @@ export function NodeTypeIcon(
 
   return (
     <div style={get_node_icon_wrap_style(s_kind)}>
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-        {s_kind === "start" && <circle cx="12" cy="12" r="5" {...o_common} fill={o_palette.s_fill} />}
-        {s_kind === "end" && <rect x="6" y="6" width="12" height="12" rx="3" {...o_common} fill={o_palette.s_fill} />}
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        {s_kind === "start" && (
+          <>
+            <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />
+            <path d="M10 9.5L15 12L10 14.5V9.5Z" {...o_common} fill={o_palette.s_stroke} />
+          </>
+        )}
+
+        {s_kind === "end" && (
+          <>
+            <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />
+            <path d="M9 9L15 15" {...o_common} />
+            <path d="M15 9L9 15" {...o_common} />
+          </>
+        )}
+
         {s_kind === "http" && (
           <>
-            <path d="M5 12h14" {...o_common} />
-            <path d="M13 6l6 6l-6 6" {...o_common} />
+            <path d="M4 12H20" {...o_common} />
+            <path d="M14 6L20 12L14 18" {...o_common} />
+            <path d="M10 6L4 12L10 18" {...o_common} />
           </>
         )}
+
         {s_kind === "code" && (
           <>
-            <path d="M9 8l-4 4l4 4" {...o_common} />
-            <path d="M15 8l4 4l-4 4" {...o_common} />
+            <path d="M9 8L5 12L9 16" {...o_common} />
+            <path d="M15 8L19 12L15 16" {...o_common} />
+            <path d="M13 6L11 18" {...o_common} />
           </>
         )}
-        {s_kind === "condition" && <path d="M12 4l8 8l-8 8l-8-8z" {...o_common} fill={o_palette.s_fill} />}
+
+        {s_kind === "condition" && (
+          <>
+            <path d="M12 4L20 12L12 20L4 12L12 4Z" {...o_common} fill={o_palette.s_fill} />
+            <path d="M9.5 12H14.5" {...o_common} />
+          </>
+        )}
+
         {s_kind === "switch" && (
           <>
-            <path d="M7 7h10" {...o_common} />
-            <path d="M7 12h10" {...o_common} />
-            <path d="M7 17h10" {...o_common} />
+            <path d="M7 6H17" {...o_common} />
+            <path d="M7 12H13" {...o_common} />
+            <path d="M7 18H17" {...o_common} />
+            <circle cx="15" cy="12" r="2" {...o_common} fill={o_palette.s_fill} />
           </>
         )}
+
         {s_kind === "loop" && (
           <>
-            <path d="M7 7h8a4 4 0 014 4" {...o_common} />
-            <path d="M17 5l2 6l-6-2" {...o_common} />
+            <path d="M7 8A7 7 0 1 1 6 15" {...o_common} />
+            <path d="M6 10V15H11" {...o_common} />
           </>
         )}
+
         {s_kind === "llm" && (
           <>
-            <rect x="5" y="5" width="14" height="14" rx="4" {...o_common} fill={o_palette.s_fill} />
-            <path d="M9 10h6" {...o_common} />
-            <path d="M9 14h4" {...o_common} />
+            <path d="M6 8.5C6 6.567 7.567 5 9.5 5H14.5C16.433 5 18 6.567 18 8.5V13.5C18 15.433 16.433 17 14.5 17H10L6 20V8.5Z" {...o_common} fill={o_palette.s_fill} />
+            <circle cx="10" cy="11" r="1" fill={o_palette.s_stroke} />
+            <circle cx="14" cy="11" r="1" fill={o_palette.s_stroke} />
           </>
         )}
+
         {s_kind === "classifier" && (
           <>
-            <circle cx="8" cy="9" r="2" {...o_common} fill={o_palette.s_fill} />
-            <circle cx="16" cy="9" r="2" {...o_common} fill={o_palette.s_fill} />
-            <path d="M6 16h12" {...o_common} />
+            <path d="M6 6H18V10H6V6Z" {...o_common} fill={o_palette.s_fill} />
+            <path d="M6 14H11V18H6V14Z" {...o_common} fill={o_palette.s_fill} />
+            <path d="M13 14H18V18H13V14Z" {...o_common} fill={o_palette.s_fill} />
           </>
         )}
+
         {s_kind === "group" && (
           <>
-            <rect x="4" y="5" width="7" height="6" rx="1.5" {...o_common} fill={o_palette.s_fill} />
-            <rect x="13" y="5" width="7" height="6" rx="1.5" {...o_common} fill={o_palette.s_fill} />
-            <rect x="8.5" y="13" width="7" height="6" rx="1.5" {...o_common} fill={o_palette.s_fill} />
+            <rect x="4" y="5" width="16" height="14" rx="2.5" {...o_common} fill={o_palette.s_fill} />
+            <path d="M8 9H16" {...o_common} />
+            <path d="M8 13H13" {...o_common} />
           </>
         )}
+
         {s_kind === "comment" && (
           <>
-            <path d="M6 7h12v8H10l-4 3V7z" {...o_common} fill={o_palette.s_fill} />
+            <path d="M5 7.5C5 6.119 6.119 5 7.5 5H16.5C17.881 5 19 6.119 19 7.5V13.5C19 14.881 17.881 16 16.5 16H10L6 19V7.5Z" {...o_common} fill={o_palette.s_fill} />
+            <path d="M8 9H16" {...o_common} />
+            <path d="M8 12H13" {...o_common} />
           </>
         )}
+
         {![
           "start",
           "end",
@@ -1009,7 +1171,9 @@ export function NodeTypeIcon(
           "classifier",
           "group",
           "comment",
-        ].includes(s_kind) && <circle cx="12" cy="12" r="6" {...o_common} fill={o_palette.s_fill} />}
+        ].includes(s_kind) && (
+          <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />
+        )}
       </svg>
     </div>
   );
@@ -1050,33 +1214,34 @@ export function NodeDetailsSection(
     >
       <summary style={get_collapsible_summary_style()}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-          <span className="node_details_arrow" style={{ display: "inline-flex", transition: "transform 0.16s ease" }}>
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-              <path d="M3 4.5l3 3l3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <span
+            style={{
+              display: "inline-flex",
+              width: "16px",
+              height: "16px",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#64748b",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true">
+              <path
+                d="M6 8L10 12L14 8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </span>
           <span>{o_props.s_title}</span>
         </span>
         <span style={get_meta_style()}>{o_props.s_meta || "show"}</span>
       </summary>
-
-      <div style={get_collapsible_body_style()}>{o_props.children}</div>
-
-      <style>
-        {`
-          details > summary::-webkit-details-marker {
-            display: none;
-          }
-
-          details > summary {
-            list-style: none;
-          }
-
-          details[open] .node_details_arrow {
-            transform: rotate(180deg);
-          }
-        `}
-      </style>
+      <div style={get_collapsible_body_style()}>
+        {o_props.children}
+      </div>
     </details>
   );
 }
@@ -1085,6 +1250,9 @@ export function RenderNamedHandles(
   o_props: TRenderNamedHandlesProps,
 ): JSX.Element {
   const { a_handles, s_type, o_data } = o_props;
+  const s_position = s_type === "target" ? "left" : "right";
+  const o_handle_style =
+    s_type === "target" ? get_input_handle_style() : get_output_handle_style();
 
   return (
     <>
@@ -1092,21 +1260,15 @@ export function RenderNamedHandles(
         const s_handle_key =
           typeof o_handle.s_key === "string" && o_handle.s_key.trim() !== ""
             ? o_handle.s_key.trim()
-            : (s_type === "target" ? "input_" : "output_") +
-              String(i_index + 1);
+            : (s_type === "target" ? "input_" : "output_") + String(i_index + 1);
 
         const s_handle_label =
-          typeof o_handle.s_label === "string" &&
-          o_handle.s_label.trim() !== ""
+          typeof o_handle.s_label === "string" && o_handle.s_label.trim() !== ""
             ? o_handle.s_label.trim()
             : s_handle_key;
 
         const d_top = get_handle_top_by_index(i_index);
-        const s_runtime_value = get_handle_runtime_value(
-          o_data,
-          s_type,
-          s_handle_key,
-        );
+        const s_runtime_value = get_handle_runtime_value(o_data, s_type, s_handle_key);
         const s_hover_text = get_handle_hover_text(
           o_handle,
           s_handle_key,
@@ -1115,42 +1277,35 @@ export function RenderNamedHandles(
           o_data,
         );
 
-        if (s_type === "target") {
-          return (
-            <React.Fragment key={s_handle_key}>
-              <Handle
-                type="target"
-                position={Position.Left}
-                id={s_handle_key}
-                style={get_input_handle_style(d_top)}
-                title={s_hover_text}
-              />
-              <div style={get_handle_label_style("left", d_top)} title={s_hover_text}>
-                {s_handle_label}
-              </div>
-              {s_runtime_value !== "" ? (
-                <div style={get_handle_value_style("left", d_top)} title={s_hover_text}>
-                  {s_runtime_value}
-                </div>
-              ) : null}
-            </React.Fragment>
-          );
-        }
-
         return (
-          <React.Fragment key={s_handle_key}>
+          <React.Fragment key={s_type + "_" + s_handle_key}>
             <Handle
-              type="source"
-              position={Position.Right}
               id={s_handle_key}
-              style={get_output_handle_style(d_top)}
+              type={s_type}
+              position={s_type === "target" ? Position.Left : Position.Right}
+              style={{
+                ...o_handle_style,
+                top: d_top,
+              }}
               title={s_hover_text}
             />
-            <div style={get_handle_label_style("right", d_top)} title={s_hover_text}>
+            <div
+              title={s_hover_text}
+              style={get_handle_label_style(
+                s_position as "left" | "right",
+                d_top,
+              )}
+            >
               {s_handle_label}
             </div>
             {s_runtime_value !== "" ? (
-              <div style={get_handle_value_style("right", d_top)} title={s_hover_text}>
+              <div
+                style={get_handle_value_style(
+                  s_position as "left" | "right",
+                  d_top,
+                )}
+                title={s_hover_text}
+              >
                 {s_runtime_value}
               </div>
             ) : null}
@@ -1161,35 +1316,31 @@ export function RenderNamedHandles(
   );
 }
 
-type TRenderEventHandlesProps = {
-  o_data: TRecord;
-};
-
 export function RenderEventHandles(
-  o_props: TRenderEventHandlesProps,
-): JSX.Element {
-  const { o_data } = o_props;
-  const a_event_handles = get_visible_event_handles(o_data);
+  o_props: {
+    o_data?: TRecord;
+  },
+): JSX.Element | null {
+  const o_data = o_props.o_data || {};
+  const a_visible_handles = get_visible_event_handles(o_data);
 
-  if (a_event_handles.length === 0) {
-    return <></>;
+  if (a_visible_handles.length === 0) {
+    return null;
   }
 
   return (
     <>
-      {a_event_handles.map((o_item, i_index) => {
-        const s_left = get_event_handle_left_by_index(
-          i_index,
-          a_event_handles.length,
-        );
+      {a_visible_handles.map((o_item, i_index) => {
+        const s_left = get_event_handle_left_by_index(i_index, a_visible_handles.length);
 
         return (
           <React.Fragment key={o_item.s_key}>
             <Handle
+              id={o_item.s_key}
               type="source"
               position={Position.Bottom}
-              id={o_item.s_key}
               style={get_event_handle_style(s_left)}
+              title={"Event: " + o_item.s_label}
             />
             <div style={get_event_handle_label_style(s_left)}>
               {o_item.s_label}
@@ -1201,35 +1352,31 @@ export function RenderEventHandles(
   );
 }
 
-type TRenderActionHandlesProps = {
-  o_data: TRecord;
-};
-
 export function RenderActionHandles(
-  o_props: TRenderActionHandlesProps,
-): JSX.Element {
-  const { o_data } = o_props;
-  const a_action_handles = get_visible_action_handles(o_data);
+  o_props: {
+    o_data?: TRecord;
+  },
+): JSX.Element | null {
+  const o_data = o_props.o_data || {};
+  const a_visible_handles = get_visible_action_handles(o_data);
 
-  if (a_action_handles.length === 0) {
-    return <></>;
+  if (a_visible_handles.length === 0) {
+    return null;
   }
 
   return (
     <>
-      {a_action_handles.map((o_item, i_index) => {
-        const s_left = get_event_handle_left_by_index(
-          i_index,
-          a_action_handles.length,
-        );
+      {a_visible_handles.map((o_item, i_index) => {
+        const s_left = get_event_handle_left_by_index(i_index, a_visible_handles.length);
 
         return (
           <React.Fragment key={o_item.s_key}>
             <Handle
+              id={o_item.s_key}
               type="target"
               position={Position.Top}
-              id={o_item.s_key}
               style={get_action_handle_style(s_left)}
+              title={"Action: " + o_item.s_label}
             />
             <div style={get_action_handle_label_style(s_left)}>
               {o_item.s_label}
@@ -1241,33 +1388,30 @@ export function RenderActionHandles(
   );
 }
 
-type TRenderRuntimeResultProps = {
-  o_data: TRecord;
-};
-
 export function RenderRuntimeResult(
-  o_props: TRenderRuntimeResultProps,
-): JSX.Element {
-  const { o_data } = o_props;
-  const s_runtime_status = get_safe_runtime_status(o_data.s_runtime_status);
+  o_props: {
+    o_data?: TRecord;
+  },
+): JSX.Element | null {
+  const o_data = o_props.o_data || {};
   const o_result = get_runtime_result(o_data);
 
-  if (
-    s_runtime_status !== "success" &&
-    s_runtime_status !== "error" &&
-    s_runtime_status !== "running"
-  ) {
-    return <></>;
+  if (o_result === null || typeof o_result === "undefined") {
+    return null;
   }
 
   return (
-    <div style={get_runtime_box_style()}>
-      <p style={get_runtime_title_style()}>
-        Runtime result - {s_runtime_status}
-      </p>
-      <pre style={get_runtime_pre_style()}>
-        {get_runtime_result_text(o_result)}
-      </pre>
-    </div>
+    <NodeDetailsSection
+      s_title="Runtime Result"
+      s_meta="result"
+      b_default_open={false}
+    >
+      <div style={get_runtime_box_style()}>
+        <p style={get_runtime_title_style()}>Result</p>
+        <pre style={get_runtime_pre_style()}>
+          {get_runtime_result_text(o_result)}
+        </pre>
+      </div>
+    </NodeDetailsSection>
   );
 }

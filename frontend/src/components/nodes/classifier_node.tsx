@@ -6,7 +6,7 @@
 /* author Marcus Schlieper */
 
 import React from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, useReactFlow  } from "@xyflow/react";
 import { NodeDeleteButton } from "../node_delete_button";
 import { use_workflow_store } from "../../store/workflow_store";
 import {
@@ -25,6 +25,7 @@ import {
   RenderNamedHandles,
   RenderRuntimeResult,
 } from "./node_runtime_helpers";
+
 
 type TClassifierClassItem = {
   s_id?: string;
@@ -121,6 +122,10 @@ function build_output_handles(
 export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
   const o_data = (data as TClassifierNodeData) || ({} as TClassifierNodeData);
   const { update_node_data } = use_workflow_store();
+  const { getNodes, getEdges } = useReactFlow();
+  const a_nodes = getNodes();
+  const a_edges = getEdges();
+
 
   const a_classes = Array.isArray(o_data.classes) ? o_data.classes : [];
 
@@ -215,12 +220,19 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
       <RenderNamedHandles
         a_handles={a_input_handles}
         s_type="target"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderNamedHandles
         a_handles={a_output_handles}
         s_type="source"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 

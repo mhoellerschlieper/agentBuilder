@@ -15,7 +15,7 @@ author Marcus Schlieper
 */
 
 import React from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, useReactFlow } from "@xyflow/react";
 import { ILoopForNodeData } from "../../types/workflow";
 import { NodeDeleteButton } from "../node_delete_button";
 import { use_workflow_store } from "../../store/workflow_store";
@@ -36,6 +36,10 @@ import {
 } from "./node_runtime_helpers";
 
 export function LoopForNode({ id, data }: NodeProps): JSX.Element {
+  const { getNodes, getEdges } = useReactFlow();
+  const a_nodes = getNodes();
+  const a_edges = getEdges();
+
   const o_data = (data as ILoopForNodeData) || ({} as ILoopForNodeData);
   const { update_node_data } = use_workflow_store();
 
@@ -47,7 +51,7 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Daten",
         s_description: "Daten fuer die Schleife",
       },
-    ],
+    ]
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -58,7 +62,7 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Ergebnis",
         s_description: "Ergebnis der Schleife",
       },
-    ],
+    ]
   );
 
   const s_source_array_variable =
@@ -73,23 +77,38 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
     typeof o_data.s_index_variable === "string" ? o_data.s_index_variable : "";
 
   const s_preview =
-    s_source_array_variable.trim() !== "" ? s_source_array_variable.trim() : "array_source";
+    s_source_array_variable.trim() !== ""
+      ? s_source_array_variable.trim()
+      : "array_source";
 
   return (
     <div style={get_node_wrapper_style()}>
       <RenderNamedHandles
         a_handles={a_input_handles}
         s_type="target"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderNamedHandles
         a_handles={a_output_handles}
         s_type="source"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(20, 184, 166, 0.18)", "rgba(20, 184, 166, 0.34)")}>
+      <div
+        style={get_node_header_style(
+          "rgba(20, 184, 166, 0.18)",
+          "rgba(20, 184, 166, 0.34)"
+        )}
+      >
         <NodeHeaderTitle
           s_kind="loop"
           s_title="Loop For"
@@ -100,10 +119,15 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
 
       <div style={get_node_body_style()}>
         <div style={get_meta_style()}>
-          Array Input {a_input_handles.length} - Iterator {a_output_handles.length}
+          Array Input {a_input_handles.length} - Iterator{" "}
+          {a_output_handles.length}
         </div>
 
-        <NodeDetailsSection s_title="Loop settings" s_meta="variables" b_default_open={false}>
+        <NodeDetailsSection
+          s_title="Loop settings"
+          s_meta="variables"
+          b_default_open={false}
+        >
           <label>
             <span style={get_label_style()}>source</span>
             <input
@@ -133,14 +157,18 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
             <input
               value={s_index_variable}
               onChange={(o_event) => {
-                update_node_data(id, { s_index_variable: o_event.target.value });
+                update_node_data(id, {
+                  s_index_variable: o_event.target.value,
+                });
               }}
               style={get_input_style()}
             />
           </label>
         </NodeDetailsSection>
 
-        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+        <RenderRuntimeResult
+          o_data={(o_data as Record<string, unknown>) || {}}
+        />
       </div>
     </div>
   );

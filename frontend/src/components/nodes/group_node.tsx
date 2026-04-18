@@ -15,7 +15,7 @@ author Marcus Schlieper
 */
 
 import React from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, useReactFlow } from "@xyflow/react";
 import { IGroupNodeData } from "../../types/workflow";
 import { NodeDeleteButton } from "../node_delete_button";
 import { use_workflow_store } from "../../store/workflow_store";
@@ -36,13 +36,17 @@ import {
 } from "./node_runtime_helpers";
 
 export function GroupNode({ id, data }: NodeProps): JSX.Element {
+  const { getNodes, getEdges } = useReactFlow();
+  const a_nodes = getNodes();
+  const a_edges = getEdges();
+
   const o_data = (data as IGroupNodeData) || ({} as IGroupNodeData);
   const { update_node_data } = use_workflow_store();
 
   const a_child_node_ids = Array.isArray(
-    (o_data as Record<string, unknown>).child_node_ids,
+    (o_data as Record<string, unknown>).child_node_ids
   )
-    ? (((o_data as Record<string, unknown>).child_node_ids as unknown[]) || [])
+    ? ((o_data as Record<string, unknown>).child_node_ids as unknown[]) || []
     : [];
 
   const a_input_handles = get_safe_handle_definitions(
@@ -53,7 +57,7 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Daten",
         s_description: "Hauptdaten",
       },
-    ],
+    ]
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -64,7 +68,7 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Ergebnis",
         s_description: "Gruppen Ergebnis",
       },
-    ],
+    ]
   );
 
   const s_group_name =
@@ -80,16 +84,29 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
       <RenderNamedHandles
         a_handles={a_input_handles}
         s_type="target"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderNamedHandles
         a_handles={a_output_handles}
         s_type="source"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(99, 102, 241, 0.18)", "rgba(99, 102, 241, 0.34)")}>
+      <div
+        style={get_node_header_style(
+          "rgba(99, 102, 241, 0.18)",
+          "rgba(99, 102, 241, 0.34)"
+        )}
+      >
         <NodeHeaderTitle
           s_kind="group"
           s_title="Group"
@@ -103,7 +120,11 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
           Group - {a_child_node_ids.length} nodes
         </div>
 
-        <NodeDetailsSection s_title="Group settings" s_meta="name" b_default_open={false}>
+        <NodeDetailsSection
+          s_title="Group settings"
+          s_meta="name"
+          b_default_open={false}
+        >
           <label>
             <span style={get_label_style()}>name</span>
             <input
@@ -116,7 +137,9 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
           </label>
         </NodeDetailsSection>
 
-        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+        <RenderRuntimeResult
+          o_data={(o_data as Record<string, unknown>) || {}}
+        />
       </div>
     </div>
   );

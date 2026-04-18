@@ -1,15 +1,41 @@
 # file: backend/nodes/classifier/node_impl.py
-# description: Classifier Node Implementierung.
+# description: Classifier Node Implementierung mit optionaler LLM-Klassifikation.
 # history:
 # - 2026-04-14: Erste ausgelagerte Version. author Marcus Schlieper
+# - 2026-04-17: Erweiterung um stabile LLM-Klassifikation mit JSON-Schema, Confidence, Similarity-Matching und sauberer Fehlerbehandlung. author ChatGPT
 
 import copy
 import json
-from typing import Any, Dict, List
+import difflib
+from typing import Any, Dict, List, Optional, Tuple
 
+from tools.LLM import llmTextGen
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import extract_primary_named_input, replace_input_placeholders, sanitize_handle_key
+from services.node_runtime.node_utils import (
+    extract_primary_named_input,
+    replace_input_placeholders,
+    sanitize_handle_key,
+)
+
+
+class ClassifierLlmError(Exception):
+    def __init__(self, s_error_type: str, s_message: str):
+        super().__init__(s_message)
+        self.s_error_type = s_error_type
+        self.s_message = s_message
+
+
+class ClassifierLlmTimeoutError(ClassifierLlmError):
+    pass
+
+
+class ClassifierLlmResponseError(ClassifierLlmError):
+    pass
+
+
+class ClassifierLlmNoMatchError(ClassifierLlmError):
+    pass
 
 
 class ClassifierNode(BaseNode):
@@ -37,7 +63,12 @@ class ClassifierNode(BaseNode):
         s_system_prompt = str(o_data.get("s_system_prompt", "")).strip()
         s_provider = str(o_data.get("s_provider", "openai")).strip().lower()
         s_model_name = str(o_data.get("s_model_name", "")).strip()
+        s_api_key = str(o_data.get("s_api_key", "")).strip()
+        s_api_host = str(o_data.get("s_api_host", "")).strip()
         d_temperature = float(str(o_data.get("d_temperature", "0")).strip() or "0")
+        i_timeout = int(o_data.get("i_timeout", 20000) or 20000)
+        i_max_completion_tokens = int(o_data.get("max_completion_tokens", 2000) or 2000)
+        d_similarity_threshold = float(str(o_data.get("d_similarity_threshold", "0.72")).strip() or "0.72")
 
         o_primary_input = extract_primary_named_input(o_context.input_context)
         s_input_text = self._stringify_classifier_input(o_primary_input)
@@ -73,25 +104,80 @@ class ClassifierNode(BaseNode):
         s_selected_label = "default"
         s_selected_id = ""
         s_reason = "no_match"
+        s_classifier_mode = "keyword"
 
-        for o_class in a_normalized_classes:
-            s_label_lower = str(o_class.get("s_label", "")).strip().lower()
-            s_description_lower = str(o_class.get("s_description", "")).strip().lower()
-            s_input_lower = s_input_text.lower()
+        o_llm_meta: Dict[str, Any] = {
+            "used": False,
+            "success": False,
+            "raw_response": "",
+            "token_usage": None,
+            "error_type": "",
+            "error_message": "",
+            "matched_by": "",
+            "schema_used": False,
+        }
 
-            if s_label_lower != "" and s_label_lower in s_input_lower:
-                s_selected_handle = str(o_class.get("s_handle_key", "default")).strip() or "default"
-                s_selected_label = str(o_class.get("s_label", "default")).strip() or "default"
-                s_selected_id = str(o_class.get("s_id", "")).strip()
-                s_reason = "matched_label"
-                break
+        d_confidence = 0.0
 
-            if s_description_lower != "" and s_description_lower in s_input_lower:
-                s_selected_handle = str(o_class.get("s_handle_key", "default")).strip() or "default"
-                s_selected_label = str(o_class.get("s_label", "default")).strip() or "default"
-                s_selected_id = str(o_class.get("s_id", "")).strip()
-                s_reason = "matched_description"
-                break
+        if s_model_name != "":
+            try:
+                (
+                    s_selected_handle,
+                    s_selected_label,
+                    s_selected_id,
+                    s_reason,
+                    d_confidence,
+                    o_llm_meta,
+                ) = self._classify_with_llm(
+                    s_input_text=s_input_text,
+                    a_classes=a_normalized_classes,
+                    s_prompt=s_prompt,
+                    s_system_prompt=s_system_prompt,
+                    s_provider=s_provider,
+                    s_model_name=s_model_name,
+                    s_api_key=s_api_key,
+                    s_api_host=s_api_host,
+                    d_temperature=d_temperature,
+                    i_timeout=i_timeout,
+                    i_max_completion_tokens=i_max_completion_tokens,
+                    d_similarity_threshold=d_similarity_threshold,
+                )
+                s_classifier_mode = "llm"
+            except ClassifierLlmError as o_exc:
+                o_llm_meta = {
+                    "used": True,
+                    "success": False,
+                    "raw_response": o_llm_meta.get("raw_response", ""),
+                    "token_usage": o_llm_meta.get("token_usage"),
+                    "error_type": o_exc.s_error_type,
+                    "error_message": o_exc.s_message,
+                    "matched_by": "",
+                    "schema_used": True,
+                }
+
+                (
+                    s_selected_handle,
+                    s_selected_label,
+                    s_selected_id,
+                    s_reason,
+                    d_confidence,
+                ) = self._classify_with_keywords(
+                    s_input_text=s_input_text,
+                    a_normalized_classes=a_normalized_classes,
+                )
+                s_classifier_mode = "keyword_fallback"
+
+        if s_model_name == "":
+            (
+                s_selected_handle,
+                s_selected_label,
+                s_selected_id,
+                s_reason,
+                d_confidence,
+            ) = self._classify_with_keywords(
+                s_input_text=s_input_text,
+                a_normalized_classes=a_normalized_classes,
+            )
 
         o_passthrough_output = copy.deepcopy(o_primary_input)
         if not isinstance(o_passthrough_output, dict):
@@ -104,14 +190,22 @@ class ClassifierNode(BaseNode):
             "selected_class_id": s_selected_id,
             "class_name": s_selected_label,
             "classifier_reason": s_reason,
+            "classifier_mode": s_classifier_mode,
             "classifier_input_text": s_input_text,
+            "confidence_score": d_confidence,
+            "llm_meta": o_llm_meta,
             "resolved_data": {
                 **o_data,
                 "s_prompt": s_prompt,
                 "s_system_prompt": s_system_prompt,
                 "s_provider": s_provider,
                 "s_model_name": s_model_name,
+                "s_api_key": "***" if s_api_key != "" else "",
+                "s_api_host": s_api_host,
                 "d_temperature": d_temperature,
+                "i_timeout": i_timeout,
+                "max_completion_tokens": i_max_completion_tokens,
+                "d_similarity_threshold": d_similarity_threshold,
                 "classes": a_normalized_classes,
             },
             "inputs_used": o_context.input_context,
@@ -125,6 +219,7 @@ class ClassifierNode(BaseNode):
                 "selected_class_label": "default",
                 "selected_class_id": "",
                 "class_name": "default",
+                "confidence_score": 0.0,
             },
         }
 
@@ -150,6 +245,251 @@ class ClassifierNode(BaseNode):
                 "node_outputs": d_node_outputs,
             },
         }
+
+    def _classify_with_keywords(
+        self,
+        s_input_text: str,
+        a_normalized_classes: List[Dict[str, Any]],
+    ) -> Tuple[str, str, str, str, float]:
+        s_selected_handle = "default"
+        s_selected_label = "default"
+        s_selected_id = ""
+        s_reason = "no_match"
+        d_confidence = 0.0
+
+        s_input_lower = s_input_text.lower()
+
+        for o_class in a_normalized_classes:
+            s_label_lower = str(o_class.get("s_label", "")).strip().lower()
+            s_description_lower = str(o_class.get("s_description", "")).strip().lower()
+
+            if s_label_lower != "" and s_label_lower in s_input_lower:
+                s_selected_handle = str(o_class.get("s_handle_key", "default")).strip() or "default"
+                s_selected_label = str(o_class.get("s_label", "default")).strip() or "default"
+                s_selected_id = str(o_class.get("s_id", "")).strip()
+                s_reason = "matched_label"
+                d_confidence = 0.8
+                break
+
+            if s_description_lower != "" and s_description_lower in s_input_lower:
+                s_selected_handle = str(o_class.get("s_handle_key", "default")).strip() or "default"
+                s_selected_label = str(o_class.get("s_label", "default")).strip() or "default"
+                s_selected_id = str(o_class.get("s_id", "")).strip()
+                s_reason = "matched_description"
+                d_confidence = 0.7
+                break
+
+        return s_selected_handle, s_selected_label, s_selected_id, s_reason, d_confidence
+
+    def _classify_with_llm(
+        self,
+        s_input_text: str,
+        a_classes: List[Dict[str, Any]],
+        s_prompt: str,
+        s_system_prompt: str,
+        s_provider: str,
+        s_model_name: str,
+        s_api_key: str,
+        s_api_host: str,
+        d_temperature: float,
+        i_timeout: int,
+        i_max_completion_tokens: int,
+        d_similarity_threshold: float,
+    ) -> Tuple[str, str, str, str, float, Dict[str, Any]]:
+        o_llm_meta: Dict[str, Any] = {
+            "used": True,
+            "success": False,
+            "raw_response": "",
+            "token_usage": None,
+            "error_type": "",
+            "error_message": "",
+            "matched_by": "",
+            "schema_used": True,
+        }
+
+        a_class_payload = []
+        for o_class in a_classes:
+            a_class_payload.append(
+                {
+                    "s_id": str(o_class.get("s_id", "")).strip(),
+                    "s_label": str(o_class.get("s_label", "")).strip(),
+                    "s_description": str(o_class.get("s_description", "")).strip(),
+                    "s_handle_key": str(o_class.get("s_handle_key", "")).strip(),
+                }
+            )
+
+        o_response_schema = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "classifier_result",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "s_id": {"type": "string"},
+                        "s_label": {"type": "string"},
+                        "s_handle_key": {"type": "string"},
+                        "reason": {"type": "string"},
+                        "confidence_score": {"type": "number"},
+                    },
+                    "required": ["s_label", "reason", "confidence_score"],
+                    "additionalProperties": False,
+                },
+            },
+        }
+
+        s_default_system_prompt = (
+            "Du bist ein Klassifikationssystem. "
+            "Wähle genau eine passende Klasse aus der Liste. "
+            "Wenn kein exakter Treffer vorhanden ist, wähle die ähnlichste passende Klasse. "
+            "Nutze nur Werte aus der Klassenliste."
+        )
+
+        s_effective_system_prompt = s_system_prompt or s_default_system_prompt
+
+        s_default_prompt = (
+            "Klassifiziere den folgenden Eingabetext in genau eine Klasse.\n\n"
+            f"Klassen:\n{json.dumps(a_class_payload, ensure_ascii=True)}\n\n"
+            f"Eingabe:\n{s_input_text}\n\n"
+            "Gib das Ergebnis strukturiert zurück."
+        )
+
+        s_effective_prompt = s_prompt or s_default_prompt
+
+        a_messages: List[Dict[str, str]] = [
+            {
+                "role": "system",
+                "content": s_effective_system_prompt,
+            },
+            {
+                "role": "user",
+                "content": s_effective_prompt,
+            },
+        ]
+
+        try:
+            s_response_text, d_token = llmTextGen(
+                model=s_model_name,
+                messages=a_messages,
+                max_completion_tokens=i_max_completion_tokens,
+                timeout=i_timeout,
+                response_format=o_response_schema,
+                s_provider=s_provider,
+                s_endpoint_url=s_api_host if s_provider == "endpoint" else "",
+                s_endpoint_api_key=s_api_key if s_provider == "endpoint" else "",
+                d_endpoint_headers=None,
+            )
+        except TimeoutError as o_exc:
+            raise ClassifierLlmTimeoutError("llm_timeout", str(o_exc))
+        except Exception as o_exc:
+            s_message = str(o_exc).lower()
+            if "timeout" in s_message:
+                raise ClassifierLlmTimeoutError("llm_timeout", str(o_exc))
+            raise ClassifierLlmError("llm_request_failed", str(o_exc))
+
+        o_llm_meta["raw_response"] = s_response_text
+        o_llm_meta["token_usage"] = d_token
+
+        try:
+            o_parsed = self._parse_llm_json_response(s_response_text)
+        except Exception as o_exc:
+            raise ClassifierLlmResponseError("llm_invalid_response", str(o_exc))
+
+        s_selected_id = str(o_parsed.get("s_id", "")).strip()
+        s_selected_label = str(o_parsed.get("s_label", "")).strip()
+        s_selected_handle = str(o_parsed.get("s_handle_key", "")).strip()
+        s_reason = str(o_parsed.get("reason", "llm_match")).strip() or "llm_match"
+
+        try:
+            d_confidence = float(o_parsed.get("confidence_score", 0.0))
+        except Exception:
+            d_confidence = 0.0
+
+        if d_confidence < 0:
+            d_confidence = 0.0
+        if d_confidence > 1:
+            d_confidence = 1.0
+
+        o_match, s_matched_by, d_similarity_score = self._find_matching_class_with_similarity(
+            a_classes=a_classes,
+            s_id=s_selected_id,
+            s_label=s_selected_label,
+            s_handle_key=s_selected_handle,
+            d_similarity_threshold=d_similarity_threshold,
+        )
+
+        if o_match is None:
+            raise ClassifierLlmNoMatchError(
+                "llm_class_not_found",
+                "LLM-Antwort passt auf keine definierte Klasse.",
+            )
+
+        if s_matched_by == "similarity" and d_confidence < d_similarity_score:
+            d_confidence = d_similarity_score
+
+        o_llm_meta["success"] = True
+        o_llm_meta["matched_by"] = s_matched_by
+
+        return (
+            str(o_match.get("s_handle_key", "default")).strip() or "default",
+            str(o_match.get("s_label", "default")).strip() or "default",
+            str(o_match.get("s_id", "")).strip(),
+            s_reason,
+            d_confidence,
+            o_llm_meta,
+        )
+
+    def _parse_llm_json_response(self, s_response_text: str) -> Dict[str, Any]:
+        s_clean = s_response_text.strip()
+
+        if s_clean == "":
+            raise ValueError("empty_llm_response")
+
+        o_parsed = json.loads(s_clean)
+        if not isinstance(o_parsed, dict):
+            raise ValueError("llm_response_not_object")
+
+        return o_parsed
+
+    def _find_matching_class_with_similarity(
+        self,
+        a_classes: List[Dict[str, Any]],
+        s_id: str,
+        s_label: str,
+        s_handle_key: str,
+        d_similarity_threshold: float,
+    ) -> Tuple[Optional[Dict[str, Any]], str, float]:
+        for o_class in a_classes:
+            if s_id != "" and str(o_class.get("s_id", "")).strip() == s_id:
+                return o_class, "id", 1.0
+
+        for o_class in a_classes:
+            if s_handle_key != "" and str(o_class.get("s_handle_key", "")).strip() == s_handle_key:
+                return o_class, "handle_key", 1.0
+
+        s_label_lower = s_label.strip().lower()
+        if s_label_lower != "":
+            for o_class in a_classes:
+                if str(o_class.get("s_label", "")).strip().lower() == s_label_lower:
+                    return o_class, "label_exact", 1.0
+
+        if s_label_lower != "":
+            o_best_match = None
+            d_best_score = 0.0
+
+            for o_class in a_classes:
+                s_candidate = str(o_class.get("s_label", "")).strip().lower()
+                if s_candidate == "":
+                    continue
+
+                d_score = difflib.SequenceMatcher(None, s_label_lower, s_candidate).ratio()
+                if d_score > d_best_score:
+                    d_best_score = d_score
+                    o_best_match = o_class
+
+            if o_best_match is not None and d_best_score >= d_similarity_threshold:
+                return o_best_match, "similarity", d_best_score
+
+        return None, "", 0.0
 
     def _stringify_classifier_input(self, o_value: Any) -> str:
         if isinstance(o_value, dict):

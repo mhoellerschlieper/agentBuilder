@@ -1,4 +1,4 @@
-﻿export_generated_at: 2026-04-13 07:23:51
+﻿export_generated_at: 2026-04-17 07:32:55
 root_path: C:\xampp\htdocs\expchat\agentBuilder\frontend
 file_count: 13
 
@@ -9,6 +9,7 @@ file: src/components/nodes/classifier_node.tsx
 /* description: Darstellung des Classifier Nodes mit LLM aehnlicher Bedienung und Switch aehnlichen Klassen Ausgaengen. */
 /* history: */
 /* - 2026-04-12: Erstellt fuer Classifier Node mit Prompt, Model und Klassen Ausgaengen. author Marcus Schlieper */
+/* - 2026-04-13: Handle Hover Infos und Runtime Werte fuer Inputs und Outputs integriert. author Marcus Schlieper */
 /* author Marcus Schlieper */
 
 import React from "react";
@@ -80,14 +81,6 @@ function get_item_box_style(): React.CSSProperties {
   };
 }
 
-function get_button_row_style(): React.CSSProperties {
-  return {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-  };
-}
-
 function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties {
   return {
     border: "1px solid " + (s_variant === "danger" ? "#dc2626" : "#2563eb"),
@@ -146,7 +139,7 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Eingabe",
         s_description: "Text oder Daten fuer Klassifikation",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -181,25 +174,24 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
   }
 
   function on_add_class(): void {
-    const a_next_classes = [
+    sync_classes([
       ...a_classes,
       {
         s_id: create_class_id(),
         s_label: "",
         s_description: "",
       },
-    ];
-    sync_classes(a_next_classes);
+    ]);
   }
 
   function on_delete_class(i_index: number): void {
     if (i_index < 0 || i_index >= a_classes.length) {
       return;
     }
-    const a_next_classes = a_classes.filter(
-      (_o_item, i_current_index) => i_current_index !== i_index,
+
+    sync_classes(
+      a_classes.filter((_o_item, i_current_index) => i_current_index !== i_index),
     );
-    sync_classes(a_next_classes);
   }
 
   function on_update_class(
@@ -220,28 +212,32 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
           ? o_current.s_id
           : create_class_id(),
     };
+
     sync_classes(a_next_classes);
   }
 
   return (
     <div style={get_node_wrapper_style()}>
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
-      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
       <RenderActionHandles o_data={(o_data as Record<string, unknown>) || {}} />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div
-        style={get_node_header_style(
-          "rgba(168, 85, 247, 0.18)",
-          "rgba(168, 85, 247, 0.34)",
-        )}
-      >
+      <div style={get_node_header_style("rgba(168, 85, 247, 0.18)", "rgba(168, 85, 247, 0.34)")}>
         <NodeHeaderTitle
           s_kind="classifier"
           s_title={typeof o_data.s_label === "string" && o_data.s_label.trim() !== "" ? o_data.s_label : "Classifier"}
-          s_subtitle="LLM based classification"
+          s_subtitle={s_model_name.trim() !== "" ? s_model_name : "classify_text"}
         />
-        <NodeDeleteButton s_node_id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -249,13 +245,9 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
           provider {s_provider} - {a_classes.length} classes
         </div>
 
-        <NodeDetailsSection
-          s_title="Classifier settings"
-          s_meta="collapsed"
-          b_default_open={false}
-        >
-          <label style={get_label_style()}>
-            provider
+        <NodeDetailsSection s_title="Classifier settings" s_meta="model and prompt" b_default_open={false}>
+          <label>
+            <span style={get_label_style()}>provider</span>
             <select
               value={s_provider}
               onChange={(o_event) => {
@@ -268,8 +260,8 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
             </select>
           </label>
 
-          <label style={get_label_style()}>
-            model_name
+          <label>
+            <span style={get_label_style()}>model_name</span>
             <select
               value={s_model_name}
               onChange={(o_event) => {
@@ -286,12 +278,12 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
             </select>
           </label>
 
-          <label style={get_label_style()}>
-            temperature
+          <label>
+            <span style={get_label_style()}>temperature</span>
             <input
               type="number"
               step="0.1"
-              value={String(d_temperature)}
+              value={d_temperature}
               onChange={(o_event) => {
                 const d_value = Number(o_event.target.value);
                 update_node_data(id, {
@@ -302,8 +294,8 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
             />
           </label>
 
-          <label style={get_label_style()}>
-            system_prompt
+          <label>
+            <span style={get_label_style()}>system_prompt</span>
             <textarea
               value={s_system_prompt}
               onChange={(o_event) => {
@@ -314,8 +306,8 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
             />
           </label>
 
-          <label style={get_label_style()}>
-            prompt
+          <label>
+            <span style={get_label_style()}>prompt</span>
             <textarea
               value={s_prompt}
               onChange={(o_event) => {
@@ -327,11 +319,7 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
           </label>
         </NodeDetailsSection>
 
-        <NodeDetailsSection
-          s_title="Classes"
-          s_meta={String(a_classes.length) + " outputs"}
-          b_default_open={false}
-        >
+        <NodeDetailsSection s_title="Classes" s_meta={String(a_classes.length)} b_default_open={false}>
           {a_classes.length === 0 ? (
             <div style={get_meta_style()}>No classes</div>
           ) : (
@@ -345,8 +333,8 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
 
               return (
                 <div key={o_class.s_id || "class_" + String(i_index)} style={get_item_box_style()}>
-                  <label style={get_label_style()}>
-                    class_label
+                  <label>
+                    <span style={get_label_style()}>class_label</span>
                     <input
                       value={s_class_label}
                       onChange={(o_event) => {
@@ -358,8 +346,8 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
                     />
                   </label>
 
-                  <label style={get_label_style()}>
-                    class_description
+                  <label>
+                    <span style={get_label_style()}>class_description</span>
                     <input
                       value={s_class_description}
                       onChange={(o_event) => {
@@ -375,33 +363,29 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
                     output handle: class_{String(i_index + 1)}
                   </div>
 
-                  <div style={get_button_row_style()}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        on_delete_class(i_index);
-                      }}
-                      style={get_button_style("danger")}
-                    >
-                      Delete Class
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      on_delete_class(i_index);
+                    }}
+                    style={get_button_style("danger")}
+                  >
+                    Delete Class
+                  </button>
                 </div>
               );
             })
           )}
 
-          <div style={get_button_row_style()}>
-            <button
-              type="button"
-              onClick={() => {
-                on_add_class();
-              }}
-              style={get_button_style("primary")}
-            >
-              Add Class
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              on_add_class();
+            }}
+            style={get_button_style("primary")}
+          >
+            Add Class
+          </button>
         </NodeDetailsSection>
 
         <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
@@ -426,6 +410,7 @@ history:
 - 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
 - 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Input und Output Handles aktiviert. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -461,14 +446,6 @@ function get_item_box_style(): React.CSSProperties {
   };
 }
 
-function get_empty_style(): React.CSSProperties {
-  return {
-    fontSize: "12px",
-    color: "#6b7280",
-    fontStyle: "italic",
-  };
-}
-
 function get_code_style(): React.CSSProperties {
   return {
     border: "1px solid #334155",
@@ -488,11 +465,11 @@ export function CodeNode({ id, data }: NodeProps): JSX.Element {
   const { update_node_data } = use_workflow_store();
 
   const a_legacy_inputs = Array.isArray((o_data as Record<string, unknown>).inputs)
-    ? ((((o_data as Record<string, unknown>).inputs as unknown[]) || []))
+    ? (((o_data as Record<string, unknown>).inputs as unknown[]) || [])
     : [];
 
   const a_legacy_outputs = Array.isArray((o_data as Record<string, unknown>).outputs)
-    ? ((((o_data as Record<string, unknown>).outputs as unknown[]) || []))
+    ? (((o_data as Record<string, unknown>).outputs as unknown[]) || [])
     : [];
 
   const a_input_handles = get_safe_handle_definitions(
@@ -508,7 +485,7 @@ export function CodeNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Konfiguration",
         s_description: "Optionale Einstellungen",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -524,7 +501,7 @@ export function CodeNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Fehler",
         s_description: "Fehlerausgang",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const s_python_code =
@@ -537,17 +514,25 @@ export function CodeNode({ id, data }: NodeProps): JSX.Element {
 
   return (
     <div style={get_node_wrapper_style()}>
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(226, 232, 240, 0.92)", "#cbd5e1")}>
+      <div style={get_node_header_style("rgba(15, 23, 42, 0.16)", "rgba(51, 65, 85, 0.28)")}>
         <NodeHeaderTitle
           s_kind="code"
-          s_title="Python Code"
+          s_title="Code"
           s_subtitle={s_code_preview}
         />
-        <NodeDeleteButton id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -555,11 +540,7 @@ export function CodeNode({ id, data }: NodeProps): JSX.Element {
           {a_input_handles.length} inputs - {a_output_handles.length} outputs
         </div>
 
-        <NodeDetailsSection
-          s_title="Code"
-          s_meta="edit"
-          b_default_open={false}
-        >
+        <NodeDetailsSection s_title="Python code" s_meta="script" b_default_open={false}>
           <textarea
             value={s_python_code}
             onChange={(o_event) => {
@@ -571,16 +552,12 @@ export function CodeNode({ id, data }: NodeProps): JSX.Element {
           />
         </NodeDetailsSection>
 
-        <NodeDetailsSection
-          s_title="Inputs"
-          s_meta={String(a_input_handles.length)}
-          b_default_open={false}
-        >
+        <NodeDetailsSection s_title="Inputs" s_meta={String(a_input_handles.length)} b_default_open={false}>
           {a_input_handles.length === 0 ? (
-            <div style={get_empty_style()}>No inputs</div>
+            <div style={get_meta_style()}>No inputs</div>
           ) : (
             a_input_handles.map((o_item, i_index) => (
-              <div key={String(o_item.s_key || i_index)} style={get_item_box_style()}>
+              <div key={o_item.s_key || "input_" + String(i_index)} style={get_item_box_style()}>
                 <div style={get_label_style()}>
                   {o_item.s_label || o_item.s_key || "input" + String(i_index + 1)}
                 </div>
@@ -594,16 +571,12 @@ export function CodeNode({ id, data }: NodeProps): JSX.Element {
           )}
         </NodeDetailsSection>
 
-        <NodeDetailsSection
-          s_title="Outputs"
-          s_meta={String(a_output_handles.length)}
-          b_default_open={false}
-        >
+        <NodeDetailsSection s_title="Outputs" s_meta={String(a_output_handles.length)} b_default_open={false}>
           {a_output_handles.length === 0 ? (
-            <div style={get_empty_style()}>No outputs</div>
+            <div style={get_meta_style()}>No outputs</div>
           ) : (
             a_output_handles.map((o_item, i_index) => (
-              <div key={String(o_item.s_key || i_index)} style={get_item_box_style()}>
+              <div key={o_item.s_key || "output_" + String(i_index)} style={get_item_box_style()}>
                 <div style={get_label_style()}>
                   {o_item.s_label || o_item.s_key || "output" + String(i_index + 1)}
                 </div>
@@ -617,11 +590,7 @@ export function CodeNode({ id, data }: NodeProps): JSX.Element {
           )}
         </NodeDetailsSection>
 
-        <NodeDetailsSection
-          s_title="Legacy"
-          s_meta={String(a_legacy_inputs.length + a_legacy_outputs.length)}
-          b_default_open={false}
-        >
+        <NodeDetailsSection s_title="Legacy info" s_meta="compat" b_default_open={false}>
           <div style={get_meta_style()}>
             {a_legacy_inputs.length} legacy inputs - {a_legacy_outputs.length} legacy outputs
           </div>
@@ -644,6 +613,7 @@ history:
 - 2026-03-27: Erstellt fuer Kommentarfunktion im Canvas. author Marcus Schlieper
 - 2026-03-27: Erweitert um Inline Eingaben im Node. author Marcus Schlieper
 - 2026-04-11: Details aufklappbar gemacht und Icon Design ergaenzt. author Marcus Schlieper
+- 2026-04-13: Komponente auf vollstaendige neue Node Struktur vereinheitlicht. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -680,13 +650,13 @@ export function CommentNode({ id, data }: NodeProps): JSX.Element {
 
   return (
     <div style={get_node_wrapper_style()}>
-      <div style={get_node_header_style("rgba(254, 240, 138, 0.55)", "#fde68a")}>
+      <div style={get_node_header_style("rgba(234, 179, 8, 0.18)", "rgba(234, 179, 8, 0.34)")}>
         <NodeHeaderTitle
           s_kind="comment"
           s_title="Comment"
           s_subtitle={s_preview}
         />
-        <NodeDeleteButton id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -694,29 +664,29 @@ export function CommentNode({ id, data }: NodeProps): JSX.Element {
           Visible on canvas
         </div>
 
-        <NodeDetailsSection
-          s_title="Details"
-          s_meta="edit"
-          b_default_open={false}
-        >
-          <label style={get_label_style()}>text</label>
-          <textarea
-            value={s_text}
-            onChange={(o_event) =>
-              update_node_data(id, { s_text: o_event.target.value })
-            }
-            rows={4}
-            style={{ ...get_input_style(), resize: "vertical" }}
-          />
+        <NodeDetailsSection s_title="Comment" s_meta="text and color" b_default_open={false}>
+          <label>
+            <span style={get_label_style()}>text</span>
+            <textarea
+              value={s_text}
+              onChange={(o_event) => {
+                update_node_data(id, { s_text: o_event.target.value });
+              }}
+              rows={4}
+              style={{ ...get_input_style(), resize: "vertical" }}
+            />
+          </label>
 
-          <label style={get_label_style()}>color</label>
-          <input
-            value={s_color}
-            onChange={(o_event) =>
-              update_node_data(id, { s_color: o_event.target.value })
-            }
-            style={get_input_style()}
-          />
+          <label>
+            <span style={get_label_style()}>color</span>
+            <input
+              value={s_color}
+              onChange={(o_event) => {
+                update_node_data(id, { s_color: o_event.target.value });
+              }}
+              style={get_input_style()}
+            />
+          </label>
         </NodeDetailsSection>
       </div>
     </div>
@@ -740,6 +710,7 @@ history:
 - 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
 - 2026-04-06: Eingabefelder auf if_left, operator, if_right, Add Rule und Delete Rule angepasst. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Handles integriert. author Marcus Schlieper
 author Marcus Schlieper
 */
 import React from "react";
@@ -779,14 +750,6 @@ function get_rule_box_style(): React.CSSProperties {
   };
 }
 
-function get_button_row_style(): React.CSSProperties {
-  return {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-  };
-}
-
 function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties {
   return {
     border: "1px solid " + (s_variant === "danger" ? "#dc2626" : "#2563eb"),
@@ -805,7 +768,7 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
   const { update_node_data } = use_workflow_store();
 
   const a_rules = Array.isArray((o_data as Record<string, unknown>).rules)
-    ? ((((o_data as Record<string, unknown>).rules as unknown[]) || []))
+    ? (((o_data as Record<string, unknown>).rules as unknown[]) || [])
     : [];
 
   const a_input_handles = get_safe_handle_definitions(
@@ -816,7 +779,7 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Pruefdaten",
         s_description: "Daten fuer die Bedingung",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -837,7 +800,7 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Ergebnis",
         s_description: "Auswertung der Bedingung",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   function update_rule_field(i_index: number, s_key: string, value: string): void {
@@ -873,23 +836,32 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
       return;
     }
 
-    const a_next_rules = a_rules.filter((_o_item, i_current_index) => i_current_index !== i_index);
-    update_node_data(id, { rules: a_next_rules });
+    update_node_data(id, {
+      rules: a_rules.filter((_o_item, i_current_index) => i_current_index !== i_index),
+    });
   }
 
   return (
     <div style={get_node_wrapper_style()}>
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(254, 243, 199, 0.92)", "#f59e0b")}>
+      <div style={get_node_header_style("rgba(245, 158, 11, 0.18)", "rgba(245, 158, 11, 0.34)")}>
         <NodeHeaderTitle
           s_kind="condition"
           s_title="Condition"
-          s_subtitle={"Rules: " + String(a_rules.length)}
+          s_subtitle={"If - " + String(a_rules.length) + " rules"}
         />
-        <NodeDeleteButton id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -897,11 +869,7 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
           If - {a_rules.length} rules
         </div>
 
-        <NodeDetailsSection
-          s_title="Rules"
-          s_meta={String(a_rules.length)}
-          b_default_open={false}
-        >
+        <NodeDetailsSection s_title="Rules" s_meta={String(a_rules.length)} b_default_open={false}>
           {a_rules.length === 0 ? (
             <div style={get_meta_style()}>No rules</div>
           ) : (
@@ -933,80 +901,86 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
                     : "";
 
               return (
-                <div key={String(o_rule.s_id || i_index)} style={get_rule_box_style()}>
-                  <label style={get_label_style()}>if_left</label>
-                  <input
-                    value={s_if_left}
-                    onChange={(o_event) => {
-                      update_rule_field(i_index, "if_left", o_event.target.value);
-                    }}
-                    style={get_input_style()}
-                  />
-
-                  <label style={get_label_style()}>operator</label>
-                  <select
-                    value={s_operator}
-                    onChange={(o_event) => {
-                      update_rule_field(i_index, "operator", o_event.target.value);
-                    }}
-                    style={get_input_style()}
-                  >
-                    <option value="equals">equals</option>
-                    <option value="not_equals">not_equals</option>
-                    <option value="greater_than">greater_than</option>
-                    <option value="greater_or_equals">greater_or_equals</option>
-                    <option value="less_than">less_than</option>
-                    <option value="less_or_equals">less_or_equals</option>
-                    <option value="contains">contains</option>
-                    <option value="not_contains">not_contains</option>
-                    <option value="starts_with">starts_with</option>
-                    <option value="ends_with">ends_with</option>
-                    <option value="is_empty">is_empty</option>
-                    <option value="is_not_empty">is_not_empty</option>
-                  </select>
-
-                  <label style={get_label_style()}>if_right</label>
-                  <input
-                    value={s_if_right}
-                    onChange={(o_event) => {
-                      update_rule_field(i_index, "if_right", o_event.target.value);
-                    }}
-                    style={get_input_style()}
-                  />
-
-                  <div style={get_button_row_style()}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        on_delete_rule(i_index);
+                <div key={String(o_rule.s_id || "rule_" + i_index)} style={get_ruleBoxStyle()}>
+                  <label>
+                    <span style={get_label_style()}>if_left</span>
+                    <input
+                      value={s_if_left}
+                      onChange={(o_event) => {
+                        update_rule_field(i_index, "if_left", o_event.target.value);
                       }}
-                      style={get_button_style("danger")}
+                      style={get_input_style()}
+                    />
+                  </label>
+
+                  <label>
+                    <span style={get_label_style()}>operator</span>
+                    <select
+                      value={s_operator}
+                      onChange={(o_event) => {
+                        update_rule_field(i_index, "operator", o_event.target.value);
+                      }}
+                      style={get_input_style()}
                     >
-                      Delete Rule
-                    </button>
-                  </div>
+                      <option value="equals">equals</option>
+                      <option value="not_equals">not_equals</option>
+                      <option value="greater_than">greater_than</option>
+                      <option value="greater_or_equals">greater_or_equals</option>
+                      <option value="less_than">less_than</option>
+                      <option value="less_or_equals">less_or_equals</option>
+                      <option value="contains">contains</option>
+                      <option value="not_contains">not_contains</option>
+                      <option value="starts_with">starts_with</option>
+                      <option value="ends_with">ends_with</option>
+                      <option value="is_empty">is_empty</option>
+                      <option value="is_not_empty">is_not_empty</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span style={get_label_style()}>if_right</span>
+                    <input
+                      value={s_if_right}
+                      onChange={(o_event) => {
+                        update_rule_field(i_index, "if_right", o_event.target.value);
+                      }}
+                      style={get_input_style()}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      on_delete_rule(i_index);
+                    }}
+                    style={get_button_style("danger")}
+                  >
+                    Delete Rule
+                  </button>
                 </div>
               );
             })
           )}
 
-          <div style={get_button_row_style()}>
-            <button
-              type="button"
-              onClick={() => {
-                on_add_rule();
-              }}
-              style={get_button_style("primary")}
-            >
-              Add Rule
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              on_add_rule();
+            }}
+            style={get_button_style("primary")}
+          >
+            Add Rule
+          </button>
         </NodeDetailsSection>
 
         <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
       </div>
     </div>
   );
+}
+
+function get_ruleBoxStyle(): React.CSSProperties {
+  return get_rule_box_style();
 }
 
 
@@ -1026,6 +1000,7 @@ history:
 - 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
 - 2026-04-07: Query Feld durch Result Feld ersetzt, damit branch spezifische Start Outputs direkt angezeigt werden koennen. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Handles integriert. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -1039,6 +1014,7 @@ import {
   NodeDetailsSection,
   NodeHeaderTitle,
   get_input_style,
+  get_label_style,
   get_meta_style,
   get_node_body_style,
   get_node_header_style,
@@ -1054,7 +1030,7 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
   const { update_node_data } = use_workflow_store();
 
   const a_legacy_outputs = Array.isArray((o_data as Record<string, unknown>).outputs)
-    ? ((((o_data as Record<string, unknown>).outputs as unknown[]) || []))
+    ? (((o_data as Record<string, unknown>).outputs as unknown[]) || [])
     : [];
 
   const a_input_handles = get_safe_handle_definitions(
@@ -1065,7 +1041,7 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Endergebnis",
         s_description: "Abschlussdaten des Workflows",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -1076,7 +1052,7 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Frontend Ergebnis",
         s_description: "Ergebnis fuer das Frontend",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const b_success =
@@ -1094,17 +1070,25 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
 
   return (
     <div style={get_node_wrapper_style()}>
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(254, 226, 226, 0.92)", "#fca5a5")}>
+      <div style={get_node_header_style("rgba(239, 68, 68, 0.16)", "rgba(239, 68, 68, 0.30)")}>
         <NodeHeaderTitle
           s_kind="end"
           s_title="End"
           s_subtitle={s_preview}
         />
-        <NodeDeleteButton id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -1112,42 +1096,38 @@ export function EndNode({ id, data }: NodeProps): JSX.Element {
           {a_input_handles.length} inputs - {a_output_handles.length} outputs
         </div>
 
-        <NodeDetailsSection
-          s_title="Settings"
-          s_meta={b_success ? "success" : "fail"}
-          b_default_open={false}
-        >
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>success</label>
-          <select
-            value={b_success ? "true" : "false"}
-            onChange={(o_event) => {
-              update_node_data(id, { b_success: o_event.target.value === "true" });
-            }}
-            style={get_input_style()}
-          >
-            <option value="true">true</option>
-            <option value="false">false</option>
-          </select>
+        <NodeDetailsSection s_title="End settings" s_meta="result" b_default_open={false}>
+          <label>
+            <span style={get_label_style()}>success</span>
+            <select
+              value={b_success ? "true" : "false"}
+              onChange={(o_event) => {
+                update_node_data(id, { b_success: o_event.target.value === "true" });
+              }}
+              style={get_input_style()}
+            >
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </label>
 
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>result</label>
-          <textarea
-            value={s_result}
-            onChange={(o_event) => {
-              update_node_data(id, {
-                s_result: o_event.target.value,
-                s_query: o_event.target.value,
-              });
-            }}
-            rows={4}
-            style={get_input_style()}
-          />
+          <label>
+            <span style={get_label_style()}>result</span>
+            <textarea
+              value={s_result}
+              onChange={(o_event) => {
+                update_node_data(id, {
+                  s_result: o_event.target.value,
+                  s_query: o_event.target.value,
+                });
+              }}
+              rows={4}
+              style={get_input_style()}
+            />
+          </label>
         </NodeDetailsSection>
 
-        <NodeDetailsSection
-          s_title="Legacy"
-          s_meta={String(a_legacy_outputs.length)}
-          b_default_open={false}
-        >
+        <NodeDetailsSection s_title="Legacy info" s_meta="compat" b_default_open={false}>
           <div style={get_meta_style()}>
             {a_legacy_outputs.length} legacy outputs
           </div>
@@ -1175,6 +1155,7 @@ history:
 - 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
 - 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Handles integriert. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -1188,6 +1169,7 @@ import {
   NodeDetailsSection,
   NodeHeaderTitle,
   get_input_style,
+  get_label_style,
   get_meta_style,
   get_node_body_style,
   get_node_header_style,
@@ -1205,7 +1187,7 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
   const a_child_node_ids = Array.isArray(
     (o_data as Record<string, unknown>).child_node_ids,
   )
-    ? ((((o_data as Record<string, unknown>).child_node_ids as unknown[]) || []))
+    ? (((o_data as Record<string, unknown>).child_node_ids as unknown[]) || [])
     : [];
 
   const a_input_handles = get_safe_handle_definitions(
@@ -1216,7 +1198,7 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Daten",
         s_description: "Hauptdaten",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -1227,7 +1209,7 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Ergebnis",
         s_description: "Gruppen Ergebnis",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const s_group_name =
@@ -1240,17 +1222,25 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
 
   return (
     <div style={get_node_wrapper_style()}>
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(224, 231, 255, 0.92)", "#c7d2fe")}>
+      <div style={get_node_header_style("rgba(99, 102, 241, 0.18)", "rgba(99, 102, 241, 0.34)")}>
         <NodeHeaderTitle
           s_kind="group"
           s_title="Group"
           s_subtitle={s_preview}
         />
-        <NodeDeleteButton id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -1258,19 +1248,17 @@ export function GroupNode({ id, data }: NodeProps): JSX.Element {
           Group - {a_child_node_ids.length} nodes
         </div>
 
-        <NodeDetailsSection
-          s_title="Details"
-          s_meta={String(a_child_node_ids.length)}
-          b_default_open={false}
-        >
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>name</label>
-          <input
-            value={s_group_name}
-            onChange={(o_event) => {
-              update_node_data(id, { s_group_name: o_event.target.value });
-            }}
-            style={get_input_style()}
-          />
+        <NodeDetailsSection s_title="Group settings" s_meta="name" b_default_open={false}>
+          <label>
+            <span style={get_label_style()}>name</span>
+            <input
+              value={s_group_name}
+              onChange={(o_event) => {
+                update_node_data(id, { s_group_name: o_event.target.value });
+              }}
+              style={get_input_style()}
+            />
+          </label>
         </NodeDetailsSection>
 
         <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
@@ -1295,6 +1283,7 @@ history:
 - 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
 - 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Handles integriert. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -1308,6 +1297,7 @@ import {
   NodeDetailsSection,
   NodeHeaderTitle,
   get_input_style,
+  get_label_style,
   get_meta_style,
   get_node_body_style,
   get_node_header_style,
@@ -1330,7 +1320,7 @@ export function HttpNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Anfrage",
         s_description: "Hauptdaten fuer den HTTP Aufruf",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -1341,7 +1331,7 @@ export function HttpNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Antwort",
         s_description: "Ergebnis des HTTP Aufrufs",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const s_api =
@@ -1364,17 +1354,25 @@ export function HttpNode({ id, data }: NodeProps): JSX.Element {
 
   return (
     <div style={get_node_wrapper_style()}>
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(219, 234, 254, 0.92)", "#93c5fd")}>
+      <div style={get_node_header_style("rgba(59, 130, 246, 0.18)", "rgba(59, 130, 246, 0.34)")}>
         <NodeHeaderTitle
           s_kind="http"
           s_title="HTTP"
           s_subtitle={s_preview}
         />
-        <NodeDeleteButton id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -1382,47 +1380,49 @@ export function HttpNode({ id, data }: NodeProps): JSX.Element {
           Inputs {a_input_handles.length} - Outputs {a_output_handles.length}
         </div>
 
-        <NodeDetailsSection
-          s_title="Request"
-          s_meta={s_method}
-          b_default_open={false}
-        >
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>api</label>
-          <input
-            value={s_api}
-            onChange={(o_event) => {
-              update_node_data(id, { s_api: o_event.target.value });
-            }}
-            style={get_input_style()}
-          />
+        <NodeDetailsSection s_title="HTTP settings" s_meta="request" b_default_open={false}>
+          <label>
+            <span style={get_label_style()}>api</span>
+            <input
+              value={s_api}
+              onChange={(o_event) => {
+                update_node_data(id, { s_api: o_event.target.value });
+              }}
+              style={get_input_style()}
+            />
+          </label>
 
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>method</label>
-          <select
-            value={s_method}
-            onChange={(o_event) => {
-              update_node_data(id, { s_method: o_event.target.value });
-            }}
-            style={get_input_style()}
-          >
-            <option value="GET">GET</option>
-            <option value="POST">POST</option>
-            <option value="PUT">PUT</option>
-            <option value="PATCH">PATCH</option>
-            <option value="DELETE">DELETE</option>
-          </select>
+          <label>
+            <span style={get_label_style()}>method</span>
+            <select
+              value={s_method}
+              onChange={(o_event) => {
+                update_node_data(id, { s_method: o_event.target.value });
+              }}
+              style={get_input_style()}
+            >
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </label>
 
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>timeout</label>
-          <input
-            type="number"
-            value={i_timeout}
-            onChange={(o_event) => {
-              const i_value = Number(o_event.target.value);
-              update_node_data(id, {
-                i_timeout: Number.isFinite(i_value) ? i_value : 0,
-              });
-            }}
-            style={get_input_style()}
-          />
+          <label>
+            <span style={get_label_style()}>timeout</span>
+            <input
+              type="number"
+              value={i_timeout}
+              onChange={(o_event) => {
+                const i_value = Number(o_event.target.value);
+                update_node_data(id, {
+                  i_timeout: Number.isFinite(i_value) ? i_value : 0,
+                });
+              }}
+              style={get_input_style()}
+            />
+          </label>
         </NodeDetailsSection>
 
         <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
@@ -1450,6 +1450,7 @@ history:
 - 2026-04-08: Provider Auswahl zwischen openai und endpoint sowie Endpoint Felder ergaenzt. author Marcus Schlieper
 - 2026-04-08: Bei openai werden apiHost und apiKey ausgeblendet. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Handles integriert. author Marcus Schlieper
 author Marcus Schlieper
 */
 import React from "react";
@@ -1462,6 +1463,7 @@ import {
   NodeDetailsSection,
   NodeHeaderTitle,
   get_input_style,
+  get_label_style,
   get_meta_style,
   get_node_body_style,
   get_node_header_style,
@@ -1504,7 +1506,7 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Kontext",
         s_description: "Zusaetzlicher Kontext",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -1520,7 +1522,7 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Tools",
         s_description: "Tool Aufrufe des Modells",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const s_provider =
@@ -1548,17 +1550,25 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
   return (
     <div style={get_node_wrapper_style()}>
       <RenderActionHandles o_data={(o_data as Record<string, unknown>) || {}} />
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(237, 233, 254, 0.92)", "#c4b5fd")}>
+      <div style={get_node_header_style("rgba(139, 92, 246, 0.18)", "rgba(139, 92, 246, 0.34)")}>
         <NodeHeaderTitle
           s_kind="llm"
           s_title="LLM"
           s_subtitle={s_preview}
         />
-        <NodeDeleteButton id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -1566,87 +1576,93 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
           Prompt {a_input_handles.length} - Result {a_output_handles.length}
         </div>
 
-        <NodeDetailsSection
-          s_title="Model"
-          s_meta={s_provider}
-          b_default_open={false}
-        >
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>provider</label>
-          <select
-            value={s_provider}
-            onChange={(o_event) => {
-              const s_next_provider = o_event.target.value;
-              update_node_data(id, {
-                s_provider: s_next_provider,
-              });
-            }}
-            style={get_input_style()}
-          >
-            <option value="openai">openai</option>
-            <option value="endpoint">endpoint</option>
-          </select>
-
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>model</label>
-          {s_provider === "openai" ? (
+        <NodeDetailsSection s_title="Model settings" s_meta="provider" b_default_open={false}>
+          <label>
+            <span style={get_label_style()}>provider</span>
             <select
-              value={s_model_name}
+              value={s_provider}
               onChange={(o_event) => {
-                update_node_data(id, { s_model_name: o_event.target.value });
+                const s_next_provider = o_event.target.value;
+                update_node_data(id, {
+                  s_provider: s_next_provider,
+                });
               }}
               style={get_input_style()}
             >
-              <option value="">select_model</option>
-              {a_openai_model_options.map((s_item) => (
-                <option key={s_item} value={s_item}>
-                  {s_item}
-                </option>
-              ))}
+              <option value="openai">openai</option>
+              <option value="endpoint">endpoint</option>
             </select>
-          ) : (
-            <input
-              value={s_model_name}
-              onChange={(o_event) => {
-                update_node_data(id, { s_model_name: o_event.target.value });
-              }}
-              style={get_input_style()}
-            />
-          )}
+          </label>
+
+          <label>
+            <span style={get_label_style()}>model</span>
+            {s_provider === "openai" ? (
+              <select
+                value={s_model_name}
+                onChange={(o_event) => {
+                  update_node_data(id, { s_model_name: o_event.target.value });
+                }}
+                style={get_input_style()}
+              >
+                <option value="">select_model</option>
+                {a_openai_model_options.map((s_item) => (
+                  <option key={s_item} value={s_item}>
+                    {s_item}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={s_model_name}
+                onChange={(o_event) => {
+                  update_node_data(id, { s_model_name: o_event.target.value });
+                }}
+                style={get_input_style()}
+              />
+            )}
+          </label>
 
           {s_provider === "endpoint" ? (
             <>
-              <label style={{ ...get_meta_style(), fontWeight: 700 }}>endpoint_url</label>
-              <input
-                value={s_api_host}
-                onChange={(o_event) => {
-                  update_node_data(id, { s_api_host: o_event.target.value });
-                }}
-                style={get_input_style()}
-              />
+              <label>
+                <span style={get_label_style()}>endpoint_url</span>
+                <input
+                  value={s_api_host}
+                  onChange={(o_event) => {
+                    update_node_data(id, { s_api_host: o_event.target.value });
+                  }}
+                  style={get_input_style()}
+                />
+              </label>
 
-              <label style={{ ...get_meta_style(), fontWeight: 700 }}>endpoint_api_key</label>
-              <input
-                value={s_api_key}
-                onChange={(o_event) => {
-                  update_node_data(id, { s_api_key: o_event.target.value });
-                }}
-                style={get_input_style()}
-              />
+              <label>
+                <span style={get_label_style()}>endpoint_api_key</span>
+                <input
+                  value={s_api_key}
+                  onChange={(o_event) => {
+                    update_node_data(id, { s_api_key: o_event.target.value });
+                  }}
+                  style={get_input_style()}
+                />
+              </label>
             </>
           ) : null}
 
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>temperature</label>
-          <input
-            type="number"
-            step="0.1"
-            value={d_temperature}
-            onChange={(o_event) => {
-              const d_value = Number(o_event.target.value);
-              update_node_data(id, {
-                d_temperature: Number.isFinite(d_value) ? d_value : 0,
-              });
-            }}
-            style={get_input_style()}
-          />
+          <label>
+            <span style={get_label_style()}>temperature</span>
+            <input
+              type="number"
+              step="0.1"
+              value={d_temperature}
+              onChange={(o_event) => {
+                const d_value = Number(o_event.target.value);
+                update_node_data(id, {
+                  d_temperature: Number.isFinite(d_value) ? d_value : 0,
+                });
+              }}
+              style={get_input_style()}
+            />
+          </label>
         </NodeDetailsSection>
 
         <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
@@ -1671,6 +1687,7 @@ history:
 - 2026-04-06: Bottom Outputs und Event Handles ergaenzt. author Marcus Schlieper
 - 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Handles integriert. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -1684,6 +1701,7 @@ import {
   NodeDetailsSection,
   NodeHeaderTitle,
   get_input_style,
+  get_label_style,
   get_meta_style,
   get_node_body_style,
   get_node_header_style,
@@ -1706,7 +1724,7 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Daten",
         s_description: "Daten fuer die Schleife",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -1717,7 +1735,7 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Ergebnis",
         s_description: "Ergebnis der Schleife",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const s_source_array_variable =
@@ -1736,17 +1754,25 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
 
   return (
     <div style={get_node_wrapper_style()}>
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(204, 251, 241, 0.92)", "#99f6e4")}>
+      <div style={get_node_header_style("rgba(20, 184, 166, 0.18)", "rgba(20, 184, 166, 0.34)")}>
         <NodeHeaderTitle
           s_kind="loop"
           s_title="Loop For"
           s_subtitle={s_preview}
         />
-        <NodeDeleteButton id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -1754,39 +1780,41 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
           Array Input {a_input_handles.length} - Iterator {a_output_handles.length}
         </div>
 
-        <NodeDetailsSection
-          s_title="Iterator"
-          s_meta="config"
-          b_default_open={false}
-        >
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>source</label>
-          <input
-            value={s_source_array_variable}
-            onChange={(o_event) => {
-              update_node_data(id, {
-                s_source_array_variable: o_event.target.value,
-              });
-            }}
-            style={get_input_style()}
-          />
+        <NodeDetailsSection s_title="Loop settings" s_meta="variables" b_default_open={false}>
+          <label>
+            <span style={get_label_style()}>source</span>
+            <input
+              value={s_source_array_variable}
+              onChange={(o_event) => {
+                update_node_data(id, {
+                  s_source_array_variable: o_event.target.value,
+                });
+              }}
+              style={get_input_style()}
+            />
+          </label>
 
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>item</label>
-          <input
-            value={s_item_variable}
-            onChange={(o_event) => {
-              update_node_data(id, { s_item_variable: o_event.target.value });
-            }}
-            style={get_input_style()}
-          />
+          <label>
+            <span style={get_label_style()}>item</span>
+            <input
+              value={s_item_variable}
+              onChange={(o_event) => {
+                update_node_data(id, { s_item_variable: o_event.target.value });
+              }}
+              style={get_input_style()}
+            />
+          </label>
 
-          <label style={{ ...get_meta_style(), fontWeight: 700 }}>index</label>
-          <input
-            value={s_index_variable}
-            onChange={(o_event) => {
-              update_node_data(id, { s_index_variable: o_event.target.value });
-            }}
-            style={get_input_style()}
-          />
+          <label>
+            <span style={get_label_style()}>index</span>
+            <input
+              value={s_index_variable}
+              onChange={(o_event) => {
+                update_node_data(id, { s_index_variable: o_event.target.value });
+              }}
+              style={get_input_style()}
+            />
+          </label>
         </NodeDetailsSection>
 
         <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
@@ -1809,6 +1837,7 @@ history:
 - 2026-04-11: Kompaktes Design mit klappbaren Details und Node SVG Icons ergaenzt. author Marcus Schlieper
 - 2026-04-12: Default fuer Details auf zugeklappt gesetzt, Runtime Result einklappbar gemacht und Pfeil Darstellung verbessert. author Marcus Schlieper
 - 2026-04-12: Hover Infos fuer Input und Output Handles sowie Runtime Werte an Handles hinzugefuegt. author Marcus Schlieper
+- 2026-04-13: Runtime Werte fuer Inputs und Outputs robuster gemacht und leserliche Handle Badges ergaenzt. author Marcus Schlieper
 author Marcus Schlieper
 */
 import React from "react";
@@ -2022,93 +2051,82 @@ function stringify_safe(o_value: unknown): string {
   }
 }
 
-function get_runtime_value_maps(
-  o_data: TRecord,
-): {
-  o_output_values: TRecord;
-  o_input_values: TRecord;
-} {
-  const o_result = get_runtime_result(o_data);
-  const o_output_values_raw =
-    get_nested_value(o_result, ["output"]) ??
-    get_nested_value(o_result, ["outputs"]) ??
-    o_data.output_values ??
-    o_data.outputs ??
-    {};
-  const o_input_values_raw =
-    get_nested_value(o_result, ["inputs"]) ??
-    get_nested_value(o_result, ["input"]) ??
-    o_data.input_values ??
-    o_data.inputs ??
-    {};
+function get_short_runtime_text(o_value: unknown): string {
+  const s_text = stringify_safe(o_value).trim();
 
-  return {
-    o_output_values:
-      o_output_values_raw && typeof o_output_values_raw === "object"
-        ? (o_output_values_raw as TRecord)
-        : {},
-    o_input_values:
-      o_input_values_raw && typeof o_input_values_raw === "object"
-        ? (o_input_values_raw as TRecord)
-        : {},
-  };
+  if (s_text === "" || s_text === "No value") {
+    return "";
+  }
+
+  const s_single_line = s_text.replace(/\s+/g, " ").trim();
+
+  if (s_single_line.length <= 64) {
+    return s_single_line;
+  }
+
+  return s_single_line.slice(0, 61) + "...";
 }
 
 export function get_handle_runtime_value(
-  o_runtime_result: unknown,
+  o_data: TRecord | undefined,
+  s_type: "source" | "target",
   s_handle_key: string,
-): unknown {
+): string {
   if (
-    !o_runtime_result ||
-    typeof o_runtime_result !== "object" ||
+    !o_data ||
     typeof s_handle_key !== "string" ||
     s_handle_key.trim() === ""
   ) {
-    return undefined;
+    return "";
   }
 
   const s_safe_key = s_handle_key.trim();
+  const o_result = get_runtime_result(o_data);
+  const a_candidate_roots =
+    s_type === "source"
+      ? ["output", "outputs", "result", "value"]
+      : ["inputs", "input", "context", "request"];
 
-  const a_candidate_paths: string[][] = [
-    ["output", s_safe_key],
-    ["outputs", s_safe_key],
-    ["result", s_safe_key],
-    ["input", s_safe_key],
-    ["inputs", s_safe_key],
-    [s_safe_key],
-  ];
+  const a_candidate_values: unknown[] = [];
 
-  for (const a_path of a_candidate_paths) {
-    const o_candidate = get_nested_value(o_runtime_result, a_path);
-    if (typeof o_candidate !== "undefined") {
-      return o_candidate;
-    }
-  }
-
-  if (s_safe_key.includes(".")) {
-    const a_dotted_parts = s_safe_key
-      .split(".")
-      .map((s_part) => s_part.trim())
-      .filter((s_part) => s_part !== "");
-
-    const a_dotted_candidate_paths: string[][] = [
-      a_dotted_parts,
-      ["output", ...a_dotted_parts],
-      ["outputs", ...a_dotted_parts],
-      ["result", ...a_dotted_parts],
-      ["input", ...a_dotted_parts],
-      ["inputs", ...a_dotted_parts],
-    ];
-
-    for (const a_path of a_dotted_candidate_paths) {
-      const o_candidate = get_nested_value(o_runtime_result, a_path);
-      if (typeof o_candidate !== "undefined") {
-        return o_candidate;
+  if (o_result && typeof o_result === "object") {
+    for (const s_root of a_candidate_roots) {
+      const o_direct_candidate = get_nested_value(o_result, [s_root, s_safe_key]);
+      if (typeof o_direct_candidate !== "undefined") {
+        a_candidate_values.push(o_direct_candidate);
       }
     }
+
+    const o_direct_on_root = get_nested_value(o_result, [s_safe_key]);
+    if (typeof o_direct_on_root !== "undefined") {
+      a_candidate_values.push(o_direct_on_root);
+    }
   }
 
-  return undefined;
+  const o_data_direct =
+    s_type === "source"
+      ? (o_data.output_values as unknown)
+      : (o_data.input_values as unknown);
+
+  if (o_data_direct && typeof o_data_direct === "object") {
+    const o_mapped_value = (o_data_direct as TRecord)[s_safe_key];
+    if (typeof o_mapped_value !== "undefined") {
+      a_candidate_values.push(o_mapped_value);
+    }
+  }
+
+  if (s_type === "target" && typeof o_data[s_safe_key] !== "undefined") {
+    a_candidate_values.push(o_data[s_safe_key]);
+  }
+
+  for (const o_candidate of a_candidate_values) {
+    const s_text = get_short_runtime_text(o_candidate);
+    if (s_text !== "") {
+      return s_text;
+    }
+  }
+
+  return "";
 }
 
 function get_handle_hover_text(
@@ -2126,16 +2144,15 @@ function get_handle_hover_text(
   const s_runtime_value = get_handle_runtime_value(o_data, s_type, s_handle_key);
 
   const a_lines: string[] = [];
-  a_lines.push(`${s_kind}: ${s_handle_label}`);
-  a_lines.push(`Variable: ${s_handle_key}`);
+  a_lines.push(s_kind + ": " + s_handle_label);
+  a_lines.push("Variable: " + s_handle_key);
 
   if (s_description !== "") {
-    a_lines.push(`Info: ${s_description}`);
+    a_lines.push("Info: " + s_description);
   }
 
   if (s_runtime_value !== "") {
-    a_lines.push("Value:");
-    a_lines.push(s_runtime_value);
+    a_lines.push("Value: " + s_runtime_value);
   }
 
   return a_lines.join("\n");
@@ -2294,9 +2311,9 @@ export function get_handle_label_style(
 ): React.CSSProperties {
   return {
     position: "absolute",
-    top: d_top - 10,
-    left: s_side === "left" ? "-8px" : undefined,
-    right: s_side === "right" ? "-8px" : undefined,
+    top: d_top - 14,
+    left: s_side === "left" ? "-10px" : undefined,
+    right: s_side === "right" ? "-10px" : undefined,
     transform:
       s_side === "left" ? "translateX(-100%)" : "translateX(100%)",
     fontSize: "11px",
@@ -2305,14 +2322,14 @@ export function get_handle_label_style(
     backgroundColor: "#ffffff",
     border: "1px solid #dbe2ea",
     borderRadius: "999px",
-    padding: "4px 7px",
+    padding: "4px 8px",
     whiteSpace: "nowrap",
     userSelect: "text",
     WebkitUserSelect: "text",
     cursor: "help",
     zIndex: 20,
     boxShadow: "0 6px 16px rgba(15, 23, 42, 0.08)",
-    maxWidth: "180px",
+    maxWidth: "190px",
     overflow: "hidden",
     textOverflow: "ellipsis",
   };
@@ -2324,24 +2341,24 @@ export function get_handle_value_style(
 ): React.CSSProperties {
   return {
     position: "absolute",
-    top: d_top + 9,
-    left: s_side === "left" ? "-8px" : undefined,
-    right: s_side === "right" ? "-8px" : undefined,
+    top: d_top + 10,
+    left: s_side === "left" ? "-10px" : undefined,
+    right: s_side === "right" ? "-10px" : undefined,
     transform:
       s_side === "left" ? "translateX(-100%)" : "translateX(100%)",
     fontSize: "10px",
-    lineHeight: 1.25,
+    lineHeight: 1.3,
     color: "#0f172a",
     backgroundColor: "#f8fafc",
     border: "1px solid #dbe2ea",
     borderRadius: "10px",
-    padding: "5px 7px",
+    padding: "5px 8px",
     userSelect: "text",
     WebkitUserSelect: "text",
     cursor: "text",
     zIndex: 20,
     boxShadow: "0 6px 16px rgba(15, 23, 42, 0.06)",
-    maxWidth: "180px",
+    maxWidth: "190px",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
   };
@@ -2754,53 +2771,54 @@ export function NodeTypeIcon(
 
   return (
     <div style={get_node_icon_wrap_style(s_kind)}>
-      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-        {s_kind === "start" && <circle cx="12" cy="12" r="6" {...o_common} fill={o_palette.s_fill} />}
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        {s_kind === "start" && <circle cx="12" cy="12" r="5" {...o_common} fill={o_palette.s_fill} />}
         {s_kind === "end" && <rect x="6" y="6" width="12" height="12" rx="3" {...o_common} fill={o_palette.s_fill} />}
         {s_kind === "http" && (
           <>
-            <path d="M5 8h14" {...o_common} />
             <path d="M5 12h14" {...o_common} />
-            <path d="M5 16h10" {...o_common} />
+            <path d="M13 6l6 6l-6 6" {...o_common} />
           </>
         )}
         {s_kind === "code" && (
           <>
-            <path d="M9 8l-4 4 4 4" {...o_common} />
-            <path d="M15 8l4 4-4 4" {...o_common} />
+            <path d="M9 8l-4 4l4 4" {...o_common} />
+            <path d="M15 8l4 4l-4 4" {...o_common} />
           </>
         )}
-        {s_kind === "condition" && <path d="M12 5l7 7-7 7-7-7z" {...o_common} fill={o_palette.s_fill} />}
+        {s_kind === "condition" && <path d="M12 4l8 8l-8 8l-8-8z" {...o_common} fill={o_palette.s_fill} />}
         {s_kind === "switch" && (
           <>
             <path d="M7 7h10" {...o_common} />
-            <path d="M12 7v10" {...o_common} />
-            <circle cx="12" cy="17" r="2" {...o_common} fill={o_palette.s_fill} />
+            <path d="M7 12h10" {...o_common} />
+            <path d="M7 17h10" {...o_common} />
           </>
         )}
         {s_kind === "loop" && (
           <>
-            <path d="M18 9a6 6 0 1 0 1 5" {...o_common} />
-            <path d="M19 5v4h-4" {...o_common} />
+            <path d="M7 7h8a4 4 0 014 4" {...o_common} />
+            <path d="M17 5l2 6l-6-2" {...o_common} />
           </>
         )}
         {s_kind === "llm" && (
           <>
-            <path d="M6 8h12v8H9l-3 3V8z" {...o_common} fill={o_palette.s_fill} />
+            <rect x="5" y="5" width="14" height="14" rx="4" {...o_common} fill={o_palette.s_fill} />
+            <path d="M9 10h6" {...o_common} />
+            <path d="M9 14h4" {...o_common} />
           </>
         )}
         {s_kind === "classifier" && (
           <>
-            <rect x="5" y="6" width="6" height="5" rx="1.5" {...o_common} fill={o_palette.s_fill} />
-            <rect x="13" y="6" width="6" height="5" rx="1.5" {...o_common} fill={o_palette.s_fill} />
-            <rect x="9" y="13" width="6" height="5" rx="1.5" {...o_common} fill={o_palette.s_fill} />
+            <circle cx="8" cy="9" r="2" {...o_common} fill={o_palette.s_fill} />
+            <circle cx="16" cy="9" r="2" {...o_common} fill={o_palette.s_fill} />
+            <path d="M6 16h12" {...o_common} />
           </>
         )}
         {s_kind === "group" && (
           <>
-            <rect x="5" y="6" width="14" height="12" rx="2.5" {...o_common} fill={o_palette.s_fill} />
-            <path d="M9 10h6" {...o_common} />
-            <path d="M9 14h6" {...o_common} />
+            <rect x="4" y="5" width="7" height="6" rx="1.5" {...o_common} fill={o_palette.s_fill} />
+            <rect x="13" y="5" width="7" height="6" rx="1.5" {...o_common} fill={o_palette.s_fill} />
+            <rect x="8.5" y="13" width="7" height="6" rx="1.5" {...o_common} fill={o_palette.s_fill} />
           </>
         )}
         {s_kind === "comment" && (
@@ -2820,7 +2838,7 @@ export function NodeTypeIcon(
           "classifier",
           "group",
           "comment",
-        ].includes(s_kind) && <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />}
+        ].includes(s_kind) && <circle cx="12" cy="12" r="6" {...o_common} fill={o_palette.s_fill} />}
       </svg>
     </div>
   );
@@ -2861,19 +2879,14 @@ export function NodeDetailsSection(
     >
       <summary style={get_collapsible_summary_style()}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-          <span
-            className="node_details_arrow"
-            style={{
-              display: "inline-flex",
-              transition: "transform 0.18s ease",
-            }}
-          >
-            â–¼
+          <span className="node_details_arrow" style={{ display: "inline-flex", transition: "transform 0.16s ease" }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M3 4.5l3 3l3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </span>
-          {o_props.s_title}
+          <span>{o_props.s_title}</span>
         </span>
-
-        <span style={get_summary_chip_style()}>{o_props.s_meta || "show"}</span>
+        <span style={get_meta_style()}>{o_props.s_meta || "show"}</span>
       </summary>
 
       <div style={get_collapsible_body_style()}>{o_props.children}</div>
@@ -2933,24 +2946,19 @@ export function RenderNamedHandles(
 
         if (s_type === "target") {
           return (
-            <React.Fragment key={`target_${s_handle_key}_${i_index}`}>
+            <React.Fragment key={s_handle_key}>
               <Handle
                 type="target"
                 position={Position.Left}
                 id={s_handle_key}
                 style={get_input_handle_style(d_top)}
-              />
-              <div
-                style={get_handle_label_style("left", d_top)}
                 title={s_hover_text}
-              >
+              />
+              <div style={get_handle_label_style("left", d_top)} title={s_hover_text}>
                 {s_handle_label}
               </div>
               {s_runtime_value !== "" ? (
-                <div
-                  style={get_handle_value_style("left", d_top)}
-                  title={s_runtime_value}
-                >
+                <div style={get_handle_value_style("left", d_top)} title={s_hover_text}>
                   {s_runtime_value}
                 </div>
               ) : null}
@@ -2959,24 +2967,19 @@ export function RenderNamedHandles(
         }
 
         return (
-          <React.Fragment key={`source_${s_handle_key}_${i_index}`}>
+          <React.Fragment key={s_handle_key}>
             <Handle
               type="source"
               position={Position.Right}
               id={s_handle_key}
               style={get_output_handle_style(d_top)}
-            />
-            <div
-              style={get_handle_label_style("right", d_top)}
               title={s_hover_text}
-            >
+            />
+            <div style={get_handle_label_style("right", d_top)} title={s_hover_text}>
               {s_handle_label}
             </div>
             {s_runtime_value !== "" ? (
-              <div
-                style={get_handle_value_style("right", d_top)}
-                title={s_runtime_value}
-              >
+              <div style={get_handle_value_style("right", d_top)} title={s_hover_text}>
                 {s_runtime_value}
               </div>
             ) : null}
@@ -3010,7 +3013,7 @@ export function RenderEventHandles(
         );
 
         return (
-          <React.Fragment key={`event_${o_item.s_key}`}>
+          <React.Fragment key={o_item.s_key}>
             <Handle
               type="source"
               position={Position.Bottom}
@@ -3050,7 +3053,7 @@ export function RenderActionHandles(
         );
 
         return (
-          <React.Fragment key={`action_${o_item.s_key}`}>
+          <React.Fragment key={o_item.s_key}>
             <Handle
               type="target"
               position={Position.Top}
@@ -3116,6 +3119,7 @@ history:
 - 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
 - 2026-04-06: Start Node um dynamische Outputs mit Typ Auswahl und Add Output erweitert. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Outputs integriert. author Marcus Schlieper
 author Marcus Schlieper
 */
 import React from "react";
@@ -3165,14 +3169,6 @@ function get_box_style(): React.CSSProperties {
   };
 }
 
-function get_button_row_style(): React.CSSProperties {
-  return {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-  };
-}
-
 function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties {
   return {
     border: "1px solid " + (s_variant === "danger" ? "#dc2626" : "#2563eb"),
@@ -3211,7 +3207,7 @@ function normalize_output_items(o_data: Record<string, unknown>): TStartOutputIt
         s_label: "Startdaten",
         s_description: "Daten des Start Nodes",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_result: TStartOutputItem[] = [];
@@ -3301,7 +3297,7 @@ function render_value_input(
     return (
       <input
         type="number"
-        value={typeof o_output.value === "number" ? String(o_output.value) : ""}
+        value={typeof o_output.value === "number" ? o_output.value : 0}
         onChange={(o_event) => {
           const i_value = Number.parseInt(o_event.target.value, 10);
           on_change(Number.isFinite(i_value) ? i_value : 0);
@@ -3315,8 +3311,8 @@ function render_value_input(
     return (
       <input
         type="number"
-        step="0.01"
-        value={typeof o_output.value === "number" ? String(o_output.value) : ""}
+        step="0.1"
+        value={typeof o_output.value === "number" ? o_output.value : 0}
         onChange={(o_event) => {
           const d_value = Number.parseFloat(o_event.target.value);
           on_change(Number.isFinite(d_value) ? d_value : 0);
@@ -3398,31 +3394,35 @@ export function StartNode({ id, data }: NodeProps): JSX.Element {
   }
 
   function on_add_output(): void {
-    const a_next_outputs = [...a_outputs];
-    a_next_outputs.push(get_default_output_item(a_next_outputs.length));
-    update_outputs(a_next_outputs);
+    update_outputs([...a_outputs, get_default_output_item(a_outputs.length)]);
   }
 
   function on_delete_output(i_index: number): void {
     if (a_outputs.length <= 1) {
       return;
     }
-    const a_next_outputs = a_outputs.filter((_o_item, i_current_index) => i_current_index !== i_index);
-    update_outputs(a_next_outputs);
+
+    update_outputs(
+      a_outputs.filter((_o_item, i_current_index) => i_current_index !== i_index),
+    );
   }
 
   return (
     <div style={get_node_wrapper_style()}>
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(209, 250, 229, 0.92)", "#86efac")}>
+      <div style={get_node_header_style("rgba(16, 185, 129, 0.18)", "rgba(16, 185, 129, 0.35)")}>
         <NodeHeaderTitle
           s_kind="start"
           s_title="Start"
-          s_subtitle={"Outputs: " + String(a_outputs.length)}
+          s_subtitle={"Outputs " + String(a_outputs.length)}
         />
-        <NodeDeleteButton id={id} />
+        <NodeDeleteButton node_id={id} />
       </div>
 
       <div style={get_node_body_style()}>
@@ -3430,90 +3430,92 @@ export function StartNode({ id, data }: NodeProps): JSX.Element {
           Outputs {a_outputs.length}
         </div>
 
-        <NodeDetailsSection
-          s_title="Outputs"
-          s_meta={String(a_outputs.length)}
-          b_default_open={false}
-        >
+        <NodeDetailsSection s_title="Start outputs" s_meta={String(a_outputs.length)} b_default_open={false}>
           {a_outputs.map((o_output, i_index) => (
-            <div key={String(o_output.s_key || i_index)} style={get_box_style()}>
-              <label style={get_label_style()}>label</label>
-              <input
-                value={o_output.s_label}
-                onChange={(o_event) => {
-                  update_output_field(i_index, "s_label", o_event.target.value);
-                }}
-                style={get_input_style()}
-              />
-
-              <label style={get_label_style()}>key</label>
-              <input
-                value={o_output.s_key}
-                onChange={(o_event) => {
-                  update_output_field(i_index, "s_key", o_event.target.value);
-                }}
-                style={get_input_style()}
-              />
-
-              <label style={get_label_style()}>type</label>
-              <select
-                value={o_output.s_type}
-                onChange={(o_event) => {
-                  update_output_field(i_index, "s_type", o_event.target.value as TStartOutputType);
-                }}
-                style={get_input_style()}
-              >
-                <option value="string">String</option>
-                <option value="int">Int</option>
-                <option value="float">Float</option>
-                <option value="array">Array</option>
-                <option value="object">Object</option>
-              </select>
-
-              <label style={get_label_style()}>value</label>
-              {render_value_input(o_output, (value: unknown) => {
-                update_output_field(i_index, "value", value);
-              })}
-
-              <label style={get_label_style()}>description</label>
-              <input
-                value={o_output.s_description}
-                onChange={(o_event) => {
-                  update_output_field(i_index, "s_description", o_event.target.value);
-                }}
-                style={get_input_style()}
-              />
-
-              <div style={get_button_row_style()}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    on_delete_output(i_index);
+            <div key={o_output.s_key || "output_" + String(i_index)} style={get_box_style()}>
+              <label>
+                <span style={get_label_style()}>label</span>
+                <input
+                  value={o_output.s_label}
+                  onChange={(o_event) => {
+                    update_output_field(i_index, "s_label", o_event.target.value);
                   }}
-                  disabled={a_outputs.length <= 1}
-                  style={{
-                    ...get_button_style("danger"),
-                    opacity: a_outputs.length <= 1 ? 0.5 : 1,
-                    cursor: a_outputs.length <= 1 ? "not-allowed" : "pointer",
+                  style={get_input_style()}
+                />
+              </label>
+
+              <label>
+                <span style={get_label_style()}>key</span>
+                <input
+                  value={o_output.s_key}
+                  onChange={(o_event) => {
+                    update_output_field(i_index, "s_key", o_event.target.value);
                   }}
+                  style={get_input_style()}
+                />
+              </label>
+
+              <label>
+                <span style={get_label_style()}>type</span>
+                <select
+                  value={o_output.s_type}
+                  onChange={(o_event) => {
+                    update_output_field(i_index, "s_type", o_event.target.value as TStartOutputType);
+                  }}
+                  style={get_input_style()}
                 >
-                  Delete Output
-                </button>
-              </div>
+                  <option value="string">String</option>
+                  <option value="int">Int</option>
+                  <option value="float">Float</option>
+                  <option value="array">Array</option>
+                  <option value="object">Object</option>
+                </select>
+              </label>
+
+              <label>
+                <span style={get_label_style()}>value</span>
+                {render_value_input(o_output, (value: unknown) => {
+                  update_output_field(i_index, "value", value);
+                })}
+              </label>
+
+              <label>
+                <span style={get_label_style()}>description</span>
+                <input
+                  value={o_output.s_description}
+                  onChange={(o_event) => {
+                    update_output_field(i_index, "s_description", o_event.target.value);
+                  }}
+                  style={get_input_style()}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={() => {
+                  on_delete_output(i_index);
+                }}
+                disabled={a_outputs.length <= 1}
+                style={{
+                  ...get_button_style("danger"),
+                  opacity: a_outputs.length <= 1 ? 0.5 : 1,
+                  cursor: a_outputs.length <= 1 ? "not-allowed" : "pointer",
+                }}
+              >
+                Delete Output
+              </button>
             </div>
           ))}
 
-          <div style={get_button_row_style()}>
-            <button
-              type="button"
-              onClick={() => {
-                on_add_output();
-              }}
-              style={get_button_style("primary")}
-            >
-              Add Output
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              on_add_output();
+            }}
+            style={get_button_style("primary")}
+          >
+            Add Output
+          </button>
         </NodeDetailsSection>
 
         <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
@@ -3537,6 +3539,7 @@ history:
 - 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
 - 2026-04-12: Add case und dynamische Case Outputs rechts ergaenzt. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Handles integriert. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -3561,6 +3564,11 @@ import {
   RenderRuntimeResult,
 } from "./node_runtime_helpers";
 
+type TSwitchCaseItem = {
+  s_id?: string;
+  s_value?: string;
+};
+
 function create_case_id(): string {
   return "case_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
 }
@@ -3574,14 +3582,6 @@ function get_case_row_style(): React.CSSProperties {
     borderRadius: "12px",
     padding: "10px",
     backgroundColor: "#f8fafc",
-  };
-}
-
-function get_button_row_style(): React.CSSProperties {
-  return {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
   };
 }
 
@@ -3602,7 +3602,7 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
   const o_data = (data as ISwitchNodeData) || ({} as ISwitchNodeData);
   const { update_node_data } = use_workflow_store();
 
-  const a_cases = Array.isArray(o_data.cases) ? o_data.cases : [];
+  const a_cases = Array.isArray(o_data.cases) ? (o_data.cases as TSwitchCaseItem[]) : [];
 
   const a_input_handles = get_safe_handle_definitions(
     (o_data as Record<string, unknown>).input_handles,
@@ -3612,7 +3612,7 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Pruefdaten",
         s_description: "Daten fuer die Auswahl",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const a_case_output_handles: THandleDefinition[] = a_cases.map((o_case, i_index) => {
@@ -3642,13 +3642,13 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Ergebnis",
         s_description: "Standard Ergebnis",
       },
-    ] as THandleDefinition[],
+    ],
   );
 
   const s_if_left = typeof o_data.s_if_left === "string" ? o_data.s_if_left : "";
   const s_default = typeof o_data.s_default === "string" ? o_data.s_default : "";
 
-  function sync_case_output_handles(a_next_cases: Array<Record<string, unknown>>): void {
+  function sync_case_output_handles(a_next_cases: TSwitchCaseItem[]): void {
     const a_next_output_handles: THandleDefinition[] = a_next_cases.map((o_case, i_index) => {
       const s_case_value =
         typeof o_case.s_value === "string" && o_case.s_value.trim() !== ""
@@ -3681,14 +3681,13 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
   }
 
   function on_add_case(): void {
-    const a_next_cases = [
+    sync_case_output_handles([
       ...a_cases,
       {
         s_id: create_case_id(),
         s_value: "",
       },
-    ];
-    sync_case_output_handles(a_next_cases as Array<Record<string, unknown>>);
+    ]);
   }
 
   function on_delete_case(i_index: number): void {
@@ -3696,17 +3695,16 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
       return;
     }
 
-    const a_next_cases = a_cases.filter(
-      (_o_item, i_current_index) => i_current_index !== i_index,
+    sync_case_output_handles(
+      a_cases.filter((_o_item, i_current_index) => i_current_index !== i_index),
     );
-    sync_case_output_handles(a_next_cases as Array<Record<string, unknown>>);
   }
 
   function on_update_case_value(i_index: number, s_value: string): void {
     const a_next_cases = [...a_cases];
     const o_current_case =
       a_next_cases[i_index] && typeof a_next_cases[i_index] === "object"
-        ? { ...(a_next_cases[i_index] as Record<string, unknown>) }
+        ? { ...(a_next_cases[i_index] as TSwitchCaseItem) }
         : { s_id: create_case_id() };
 
     o_current_case.s_value = s_value;
@@ -3719,20 +3717,28 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
     }
 
     a_next_cases[i_index] = o_current_case;
-    sync_case_output_handles(a_next_cases as Array<Record<string, unknown>>);
+    sync_case_output_handles(a_next_cases);
   }
 
   return (
     <div style={get_node_wrapper_style()}>
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
-      <RenderEventHandles o_data={((o_data as unknown) as Record<string, unknown>) || {}} />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(249, 115, 22, 0.18)", "rgba(249, 115, 22, 0.28)")}>
+      <div style={get_node_header_style("rgba(249, 115, 22, 0.18)", "rgba(249, 115, 22, 0.34)")}>
         <NodeHeaderTitle
           s_kind="switch"
-          s_title={typeof o_data.s_label === "string" && o_data.s_label.trim() !== "" ? o_data.s_label : "Switch"}
-          s_subtitle="Case routing"
+          s_title="Switch"
+          s_subtitle={"if left - " + String(a_cases.length) + " cases"}
         />
         <NodeDeleteButton node_id={id} />
       </div>
@@ -3742,13 +3748,9 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
           if left - {a_cases.length} cases - 1 default
         </div>
 
-        <NodeDetailsSection
-          s_title="Details"
-          s_meta={a_cases.length + " cases"}
-          b_default_open={true}
-        >
-          <label style={get_label_style()}>
-            if left
+        <NodeDetailsSection s_title="Switch settings" s_meta="cases" b_default_open={false}>
+          <label>
+            <span style={get_label_style()}>if left</span>
             <input
               value={s_if_left}
               onChange={(o_event) => {
@@ -3766,9 +3768,9 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
                   : "";
 
               return (
-                <div key={typeof o_case?.s_id === "string" ? o_case.s_id : "case_" + String(i_index)} style={get_case_row_style()}>
-                  <label style={get_label_style()}>
-                    {"case" + String(i_index + 1)}
+                <div key={o_case.s_id || "case_" + String(i_index)} style={get_case_row_style()}>
+                  <label>
+                    <span style={get_label_style()}>{"case" + String(i_index + 1)}</span>
                     <input
                       value={s_case_value}
                       onChange={(o_event) => {
@@ -3782,17 +3784,15 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
                     output handle: case_{String(i_index + 1)}
                   </div>
 
-                  <div style={get_button_row_style()}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        on_delete_case(i_index);
-                      }}
-                      style={get_button_style("danger")}
-                    >
-                      Delete Case
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      on_delete_case(i_index);
+                    }}
+                    style={get_button_style("danger")}
+                  >
+                    Delete Case
+                  </button>
                 </div>
               );
             })
@@ -3800,20 +3800,18 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
             <div style={get_meta_style()}>No cases</div>
           )}
 
-          <div style={get_button_row_style()}>
-            <button
-              type="button"
-              onClick={() => {
-                on_add_case();
-              }}
-              style={get_button_style("primary")}
-            >
-              Add Case
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              on_add_case();
+            }}
+            style={get_button_style("primary")}
+          >
+            Add Case
+          </button>
 
-          <label style={get_label_style()}>
-            default
+          <label>
+            <span style={get_label_style()}>default</span>
             <input
               value={s_default}
               onChange={(o_event) => {
@@ -3824,7 +3822,7 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
           </label>
         </NodeDetailsSection>
 
-        <RenderRuntimeResult o_data={((o_data as unknown) as Record<string, unknown>) || {}} />
+        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
       </div>
     </div>
   );
@@ -3848,6 +3846,7 @@ history:
 - 2026-04-06: Output Handles wieder rechts positioniert. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon Design an neues Node Layout angepasst. author Marcus Schlieper
 - 2026-04-11: Nicht Standard Workflow Nodes nutzen jetzt dasselbe Icon wie im tool_tree_panel. author Marcus Schlieper
+- 2026-04-13: Hover Infos und Runtime Werte an Handles integriert. author Marcus Schlieper
 author Marcus Schlieper
 */
 import React from "react";
@@ -4033,17 +4032,6 @@ function get_safe_text(value: unknown, s_fallback = ""): string {
   return s_fallback;
 }
 
-function get_number_value(value: unknown, d_fallback = 0): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  const d_value = Number(value);
-  if (Number.isFinite(d_value)) {
-    return d_value;
-  }
-  return d_fallback;
-}
-
 function get_boolean_value(value: unknown): boolean {
   return value === true;
 }
@@ -4077,17 +4065,7 @@ function hex_to_rgba(s_hex_color: string, d_alpha: number): string {
   if (!Number.isFinite(i_red) || !Number.isFinite(i_green) || !Number.isFinite(i_blue)) {
     return "rgba(37, 99, 235, 0.12)";
   }
-  return (
-    "rgba(" +
-    i_red +
-    ", " +
-    i_green +
-    ", " +
-    i_blue +
-    ", " +
-    d_alpha +
-    ")"
-  );
+  return "rgba(" + i_red + ", " + i_green + ", " + i_blue + ", " + d_alpha + ")";
 }
 
 function get_node_wrapper_style(s_tool_color: string, b_selected: boolean): CSSProperties {
@@ -4455,7 +4433,7 @@ function render_schema_icon(s_icon: string, s_tool_color: string): JSX.Element {
   const IconComponent = get_icon_component_by_name(s_icon);
   return (
     <div style={get_tool_panel_icon_box_style(s_tool_color)}>
-      <IconComponent size={18} strokeWidth={2} />
+      <IconComponent size={18} />
     </div>
   );
 }
@@ -4474,6 +4452,7 @@ function normalize_handle_list(
       },
     ];
   }
+
   return a_handles
     .map((o_item, i_index) => {
       if (typeof o_item === "string") {
@@ -4483,6 +4462,7 @@ function normalize_handle_list(
           s_description: "",
         };
       }
+
       if (typeof o_item === "object" && o_item !== null) {
         const o_handle = o_item as THandleDefinition;
         return {
@@ -4500,6 +4480,7 @@ function normalize_handle_list(
             typeof o_handle.s_description === "string" ? o_handle.s_description : "",
         };
       }
+
       return {
         s_key: s_prefix + "_" + String(i_index + 1),
         s_label: s_prefix + "_" + String(i_index + 1),
@@ -4537,7 +4518,7 @@ function render_input_field(
     return (
       <input
         type="number"
-        value={String(get_number_value(value, o_field.d_default ?? 0))}
+        value={typeof value === "number" ? value : o_field.d_default ?? 0}
         onChange={(o_event) => {
           const d_value = Number(o_event.target.value);
           const d_safe_value = Number.isFinite(d_value)
@@ -4571,9 +4552,7 @@ function render_input_field(
     return (
       <select
         value={get_boolean_value(value) ? "true" : "false"}
-        onChange={(o_event) =>
-          update_value(o_field.s_key, o_event.target.value === "true")
-        }
+        onChange={(o_event) => update_value(o_field.s_key, o_event.target.value === "true")}
         style={get_input_style()}
       >
         <option value="true">true</option>
@@ -4585,15 +4564,14 @@ function render_input_field(
   if (o_field.s_field_type === "variable_select") {
     return (
       <ToolVariableSelector
-        s_value={get_string_value(value)}
-        on_change={(s_value) => update_value(o_field.s_key, s_value)}
+        value={get_string_value(value)}
+        on_change={(s_value: string) => update_value(o_field.s_key, s_value)}
       />
     );
   }
 
   return (
     <input
-      type="text"
       value={get_string_value(value)}
       onChange={(o_event) => update_value(o_field.s_key, o_event.target.value)}
       style={get_input_style()}
@@ -4653,8 +4631,16 @@ export function ToolNode({ id, data, type, selected }: NodeProps): JSX.Element {
 
   return (
     <div style={get_node_wrapper_style(s_tool_color, selected === true)}>
-      <RenderNamedHandles a_handles={a_input_handles} s_type="target" />
-      <RenderNamedHandles a_handles={a_output_handles} s_type="source" />
+      <RenderNamedHandles
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record<string, unknown>) || {}}
+      />
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
       <div style={get_header_style(s_tool_color)}>
@@ -4662,15 +4648,16 @@ export function ToolNode({ id, data, type, selected }: NodeProps): JSX.Element {
           <div style={get_header_title_row_style()}>
             {render_schema_icon(s_tool_icon, s_tool_color)}
             <div style={get_header_text_wrap_style()}>
-              <div style={get_title_style()}>{s_tool_label}</div>
-              <div style={get_type_style()}>{get_safe_text(s_tool_type, "tool")}</div>
+              <p style={get_title_style()}>{s_tool_label}</p>
+              <p style={get_type_style()}>{get_safe_text(s_tool_type, "tool")}</p>
             </div>
           </div>
-          <NodeDeleteButton id={id} />
+
+          <NodeDeleteButton node_id={id} />
         </div>
 
         {o_schema?.s_description ? (
-          <div style={get_description_style()}>{o_schema.s_description}</div>
+          <p style={get_description_style()}>{o_schema.s_description}</p>
         ) : null}
       </div>
 
@@ -4679,16 +4666,11 @@ export function ToolNode({ id, data, type, selected }: NodeProps): JSX.Element {
           Inputs {a_input_handles.length} - Outputs {a_output_handles.length}
         </div>
 
-        <NodeDetailsSection
-          s_title="Configuration"
-          s_meta="show"
-          b_default_open={false}
-        >
+        <NodeDetailsSection s_title="Tool settings" s_meta="fields" b_default_open={false}>
           <div style={get_field_wrapper_style()}>
             <label style={get_label_style()}>Label</label>
             <input
-              type="text"
-              value={get_safe_text(o_data.s_label, s_tool_label)}
+              value={get_string_value(o_data.s_label)}
               onChange={(o_event) => update_value("s_label", o_event.target.value)}
               style={get_input_style()}
             />

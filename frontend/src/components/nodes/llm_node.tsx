@@ -17,7 +17,7 @@ history:
 author Marcus Schlieper
 */
 import React from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, useReactFlow } from "@xyflow/react";
 import { ILlmNodeData } from "../../types/workflow";
 import { NodeDeleteButton } from "../node_delete_button";
 import { use_workflow_store } from "../../store/workflow_store";
@@ -53,6 +53,10 @@ const a_openai_model_options: string[] = [
 ];
 
 export function LlmNode({ id, data }: NodeProps): JSX.Element {
+  const { getNodes, getEdges } = useReactFlow();
+  const a_nodes = getNodes();
+  const a_edges = getEdges();
+
   const o_data = (data as ILlmNodeData) || ({} as ILlmNodeData);
   const { update_node_data } = use_workflow_store();
 
@@ -69,7 +73,7 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Kontext",
         s_description: "Zusaetzlicher Kontext",
       },
-    ],
+    ]
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -85,7 +89,7 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Tools",
         s_description: "Tool Aufrufe des Modells",
       },
-    ],
+    ]
   );
 
   const s_provider =
@@ -116,21 +120,30 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
       <RenderNamedHandles
         a_handles={a_input_handles}
         s_type="target"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderNamedHandles
         a_handles={a_output_handles}
         s_type="source"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(139, 92, 246, 0.18)", "rgba(139, 92, 246, 0.34)")}>
-        <NodeHeaderTitle
-          s_kind="llm"
-          s_title="LLM"
-          s_subtitle={s_preview}
-        />
+      <div
+        style={get_node_header_style(
+          "rgba(139, 92, 246, 0.18)",
+          "rgba(139, 92, 246, 0.34)"
+        )}
+      >
+        <NodeHeaderTitle s_kind="llm" s_title="LLM" s_subtitle={s_preview} />
         <NodeDeleteButton node_id={id} />
       </div>
 
@@ -139,7 +152,11 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
           Prompt {a_input_handles.length} - Result {a_output_handles.length}
         </div>
 
-        <NodeDetailsSection s_title="Model settings" s_meta="provider" b_default_open={false}>
+        <NodeDetailsSection
+          s_title="Model settings"
+          s_meta="provider"
+          b_default_open={false}
+        >
           <label>
             <span style={get_label_style()}>provider</span>
             <select
@@ -228,7 +245,9 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
           </label>
         </NodeDetailsSection>
 
-        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+        <RenderRuntimeResult
+          o_data={(o_data as Record<string, unknown>) || {}}
+        />
       </div>
     </div>
   );

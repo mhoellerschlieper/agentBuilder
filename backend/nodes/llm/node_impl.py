@@ -3,6 +3,7 @@
 # history:
 # - 2026-04-14: Erste ausgelagerte Version. author Marcus Schlieper
 
+
 import copy
 import json
 from typing import Any, Dict, List

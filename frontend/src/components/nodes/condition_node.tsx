@@ -15,7 +15,7 @@ history:
 author Marcus Schlieper
 */
 import React from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, useReactFlow } from "@xyflow/react";
 import { IConditionNodeData } from "../../types/workflow";
 import { NodeDeleteButton } from "../node_delete_button";
 import { use_workflow_store } from "../../store/workflow_store";
@@ -36,7 +36,12 @@ import {
 } from "./node_runtime_helpers";
 
 function create_rule_id(): string {
-  return "rule_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
+  return (
+    "rule_" +
+    String(Date.now()) +
+    "_" +
+    String(Math.floor(Math.random() * 100000))
+  );
 }
 
 function get_rule_box_style(): React.CSSProperties {
@@ -51,7 +56,9 @@ function get_rule_box_style(): React.CSSProperties {
   };
 }
 
-function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties {
+function get_button_style(
+  s_variant: "primary" | "danger"
+): React.CSSProperties {
   return {
     border: "1px solid " + (s_variant === "danger" ? "#dc2626" : "#2563eb"),
     borderRadius: "10px",
@@ -65,11 +72,15 @@ function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties 
 }
 
 export function ConditionNode({ id, data }: NodeProps): JSX.Element {
+  const { getNodes, getEdges } = useReactFlow();
+  const a_nodes = getNodes();
+  const a_edges = getEdges();
+
   const o_data = (data as IConditionNodeData) || ({} as IConditionNodeData);
   const { update_node_data } = use_workflow_store();
 
   const a_rules = Array.isArray((o_data as Record<string, unknown>).rules)
-    ? (((o_data as Record<string, unknown>).rules as unknown[]) || [])
+    ? ((o_data as Record<string, unknown>).rules as unknown[]) || []
     : [];
 
   const a_input_handles = get_safe_handle_definitions(
@@ -80,7 +91,7 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Pruefdaten",
         s_description: "Daten fuer die Bedingung",
       },
-    ],
+    ]
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -101,10 +112,14 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Ergebnis",
         s_description: "Auswertung der Bedingung",
       },
-    ],
+    ]
   );
 
-  function update_rule_field(i_index: number, s_key: string, value: string): void {
+  function update_rule_field(
+    i_index: number,
+    s_key: string,
+    value: string
+  ): void {
     const a_next_rules = [...a_rules];
     const o_rule =
       a_next_rules[i_index] && typeof a_next_rules[i_index] === "object"
@@ -138,7 +153,9 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
     }
 
     update_node_data(id, {
-      rules: a_rules.filter((_o_item, i_current_index) => i_current_index !== i_index),
+      rules: a_rules.filter(
+        (_o_item, i_current_index) => i_current_index !== i_index
+      ),
     });
   }
 
@@ -147,16 +164,29 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
       <RenderNamedHandles
         a_handles={a_input_handles}
         s_type="target"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderNamedHandles
         a_handles={a_output_handles}
         s_type="source"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(245, 158, 11, 0.18)", "rgba(245, 158, 11, 0.34)")}>
+      <div
+        style={get_node_header_style(
+          "rgba(245, 158, 11, 0.18)",
+          "rgba(245, 158, 11, 0.34)"
+        )}
+      >
         <NodeHeaderTitle
           s_kind="condition"
           s_title="Condition"
@@ -166,11 +196,13 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
       </div>
 
       <div style={get_node_body_style()}>
-        <div style={get_meta_style()}>
-          If - {a_rules.length} rules
-        </div>
+        <div style={get_meta_style()}>If - {a_rules.length} rules</div>
 
-        <NodeDetailsSection s_title="Rules" s_meta={String(a_rules.length)} b_default_open={false}>
+        <NodeDetailsSection
+          s_title="Rules"
+          s_meta={String(a_rules.length)}
+          b_default_open={false}
+        >
           {a_rules.length === 0 ? (
             <div style={get_meta_style()}>No rules</div>
           ) : (
@@ -184,31 +216,38 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
                 typeof o_rule.if_left === "string"
                   ? o_rule.if_left
                   : typeof o_rule.s_if_left === "string"
-                    ? (o_rule.s_if_left as string)
-                    : "";
+                  ? (o_rule.s_if_left as string)
+                  : "";
 
               const s_operator =
                 typeof o_rule.operator === "string"
                   ? o_rule.operator
                   : typeof o_rule.s_operator === "string"
-                    ? (o_rule.s_operator as string)
-                    : "equals";
+                  ? (o_rule.s_operator as string)
+                  : "equals";
 
               const s_if_right =
                 typeof o_rule.if_right === "string"
                   ? o_rule.if_right
                   : typeof o_rule.s_if_right === "string"
-                    ? (o_rule.s_if_right as string)
-                    : "";
+                  ? (o_rule.s_if_right as string)
+                  : "";
 
               return (
-                <div key={String(o_rule.s_id || "rule_" + i_index)} style={get_ruleBoxStyle()}>
+                <div
+                  key={String(o_rule.s_id || "rule_" + i_index)}
+                  style={get_ruleBoxStyle()}
+                >
                   <label>
                     <span style={get_label_style()}>if_left</span>
                     <input
                       value={s_if_left}
                       onChange={(o_event) => {
-                        update_rule_field(i_index, "if_left", o_event.target.value);
+                        update_rule_field(
+                          i_index,
+                          "if_left",
+                          o_event.target.value
+                        );
                       }}
                       style={get_input_style()}
                     />
@@ -219,14 +258,20 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
                     <select
                       value={s_operator}
                       onChange={(o_event) => {
-                        update_rule_field(i_index, "operator", o_event.target.value);
+                        update_rule_field(
+                          i_index,
+                          "operator",
+                          o_event.target.value
+                        );
                       }}
                       style={get_input_style()}
                     >
                       <option value="equals">equals</option>
                       <option value="not_equals">not_equals</option>
                       <option value="greater_than">greater_than</option>
-                      <option value="greater_or_equals">greater_or_equals</option>
+                      <option value="greater_or_equals">
+                        greater_or_equals
+                      </option>
                       <option value="less_than">less_than</option>
                       <option value="less_or_equals">less_or_equals</option>
                       <option value="contains">contains</option>
@@ -243,7 +288,11 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
                     <input
                       value={s_if_right}
                       onChange={(o_event) => {
-                        update_rule_field(i_index, "if_right", o_event.target.value);
+                        update_rule_field(
+                          i_index,
+                          "if_right",
+                          o_event.target.value
+                        );
                       }}
                       style={get_input_style()}
                     />
@@ -274,7 +323,9 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
           </button>
         </NodeDetailsSection>
 
-        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+        <RenderRuntimeResult
+          o_data={(o_data as Record<string, unknown>) || {}}
+        />
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ author Marcus Schlieper
 */
 
 import React from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, useReactFlow  } from "@xyflow/react";
 import { IHttpNodeData } from "../../types/workflow";
 import { NodeDeleteButton } from "../node_delete_button";
 import { use_workflow_store } from "../../store/workflow_store";
@@ -36,6 +36,10 @@ import {
 } from "./node_runtime_helpers";
 
 export function HttpNode({ id, data }: NodeProps): JSX.Element {
+  const { getNodes, getEdges } = useReactFlow();
+const a_nodes = getNodes();
+const a_edges = getEdges();
+
   const o_data = (data as IHttpNodeData) || ({} as IHttpNodeData);
   const { update_node_data } = use_workflow_store();
 
@@ -82,15 +86,23 @@ export function HttpNode({ id, data }: NodeProps): JSX.Element {
   return (
     <div style={get_node_wrapper_style()}>
       <RenderNamedHandles
-        a_handles={a_input_handles}
-        s_type="target"
-        o_data={(o_data as Record<string, unknown>) || {}}
-      />
-      <RenderNamedHandles
-        a_handles={a_output_handles}
-        s_type="source"
-        o_data={(o_data as Record<string, unknown>) || {}}
-      />
+  a_handles={a_input_handles}
+  s_type="target"
+  o_data={(o_data as Record) || {}}
+  s_node_id={id}
+  a_nodes={a_nodes}
+  a_edges={a_edges}
+/>
+
+<RenderNamedHandles
+  a_handles={a_output_handles}
+  s_type="source"
+  o_data={(o_data as Record) || {}}
+  s_node_id={id}
+  a_nodes={a_nodes}
+  a_edges={a_edges}
+/>
+
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
       <div style={get_node_header_style("rgba(59, 130, 246, 0.18)", "rgba(59, 130, 246, 0.34)")}>
