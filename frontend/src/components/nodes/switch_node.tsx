@@ -14,7 +14,7 @@ author Marcus Schlieper
 */
 
 import React from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, useReactFlow } from "@xyflow/react";
 import { ISwitchNodeData } from "../../types/workflow";
 import { NodeDeleteButton } from "../node_delete_button";
 import { use_workflow_store } from "../../store/workflow_store";
@@ -40,7 +40,12 @@ type TSwitchCaseItem = {
 };
 
 function create_case_id(): string {
-  return "case_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
+  return (
+    "case_" +
+    String(Date.now()) +
+    "_" +
+    String(Math.floor(Math.random() * 100000))
+  );
 }
 
 function get_case_row_style(): React.CSSProperties {
@@ -55,7 +60,9 @@ function get_case_row_style(): React.CSSProperties {
   };
 }
 
-function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties {
+function get_button_style(
+  s_variant: "primary" | "danger"
+): React.CSSProperties {
   return {
     border: "1px solid " + (s_variant === "danger" ? "#dc2626" : "#2563eb"),
     borderRadius: "10px",
@@ -69,10 +76,16 @@ function get_button_style(s_variant: "primary" | "danger"): React.CSSProperties 
 }
 
 export function SwitchNode({ id, data }: NodeProps): JSX.Element {
+  const { getNodes, getEdges } = useReactFlow();
+  const a_nodes = getNodes();
+  const a_edges = getEdges();
+
   const o_data = (data as ISwitchNodeData) || ({} as ISwitchNodeData);
   const { update_node_data } = use_workflow_store();
 
-  const a_cases = Array.isArray(o_data.cases) ? (o_data.cases as TSwitchCaseItem[]) : [];
+  const a_cases = Array.isArray(o_data.cases)
+    ? (o_data.cases as TSwitchCaseItem[])
+    : [];
 
   const a_input_handles = get_safe_handle_definitions(
     (o_data as Record<string, unknown>).input_handles,
@@ -82,21 +95,25 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Pruefdaten",
         s_description: "Daten fuer die Auswahl",
       },
-    ],
+    ]
   );
 
-  const a_case_output_handles: THandleDefinition[] = a_cases.map((o_case, i_index) => {
-    const s_case_value =
-      o_case && typeof o_case.s_value === "string" && o_case.s_value.trim() !== ""
-        ? o_case.s_value.trim()
-        : "case_" + String(i_index + 1);
+  const a_case_output_handles: THandleDefinition[] = a_cases.map(
+    (o_case, i_index) => {
+      const s_case_value =
+        o_case &&
+        typeof o_case.s_value === "string" &&
+        o_case.s_value.trim() !== ""
+          ? o_case.s_value.trim()
+          : "case_" + String(i_index + 1);
 
-    return {
-      s_key: "case_" + String(i_index + 1),
-      s_label: s_case_value,
-      s_description: "Ausgang fuer " + s_case_value,
-    };
-  });
+      return {
+        s_key: "case_" + String(i_index + 1),
+        s_label: s_case_value,
+        s_description: "Ausgang fuer " + s_case_value,
+      };
+    }
+  );
 
   const a_output_handles = get_safe_handle_definitions(
     (o_data as Record<string, unknown>).output_handles,
@@ -112,25 +129,29 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
         s_label: "Ergebnis",
         s_description: "Standard Ergebnis",
       },
-    ],
+    ]
   );
 
-  const s_if_left = typeof o_data.s_if_left === "string" ? o_data.s_if_left : "";
-  const s_default = typeof o_data.s_default === "string" ? o_data.s_default : "";
+  const s_if_left =
+    typeof o_data.s_if_left === "string" ? o_data.s_if_left : "";
+  const s_default =
+    typeof o_data.s_default === "string" ? o_data.s_default : "";
 
   function sync_case_output_handles(a_next_cases: TSwitchCaseItem[]): void {
-    const a_next_output_handles: THandleDefinition[] = a_next_cases.map((o_case, i_index) => {
-      const s_case_value =
-        typeof o_case.s_value === "string" && o_case.s_value.trim() !== ""
-          ? o_case.s_value.trim()
-          : "case_" + String(i_index + 1);
+    const a_next_output_handles: THandleDefinition[] = a_next_cases.map(
+      (o_case, i_index) => {
+        const s_case_value =
+          typeof o_case.s_value === "string" && o_case.s_value.trim() !== ""
+            ? o_case.s_value.trim()
+            : "case_" + String(i_index + 1);
 
-      return {
-        s_key: "case_" + String(i_index + 1),
-        s_label: s_case_value,
-        s_description: "Ausgang fuer " + s_case_value,
-      };
-    });
+        return {
+          s_key: "case_" + String(i_index + 1),
+          s_label: s_case_value,
+          s_description: "Ausgang fuer " + s_case_value,
+        };
+      }
+    );
 
     a_next_output_handles.push({
       s_key: "default",
@@ -166,7 +187,7 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
     }
 
     sync_case_output_handles(
-      a_cases.filter((_o_item, i_current_index) => i_current_index !== i_index),
+      a_cases.filter((_o_item, i_current_index) => i_current_index !== i_index)
     );
   }
 
@@ -195,16 +216,29 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
       <RenderNamedHandles
         a_handles={a_input_handles}
         s_type="target"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderNamedHandles
         a_handles={a_output_handles}
         s_type="source"
-        o_data={(o_data as Record<string, unknown>) || {}}
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
       />
+
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(249, 115, 22, 0.18)", "rgba(249, 115, 22, 0.34)")}>
+      <div
+        style={get_node_header_style(
+          "rgba(249, 115, 22, 0.18)",
+          "rgba(249, 115, 22, 0.34)"
+        )}
+      >
         <NodeHeaderTitle
           s_kind="switch"
           s_title="Switch"
@@ -218,7 +252,11 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
           if left - {a_cases.length} cases - 1 default
         </div>
 
-        <NodeDetailsSection s_title="Switch settings" s_meta="cases" b_default_open={false}>
+        <NodeDetailsSection
+          s_title="Switch settings"
+          s_meta="cases"
+          b_default_open={false}
+        >
           <label>
             <span style={get_label_style()}>if left</span>
             <input
@@ -238,9 +276,14 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
                   : "";
 
               return (
-                <div key={o_case.s_id || "case_" + String(i_index)} style={get_case_row_style()}>
+                <div
+                  key={o_case.s_id || "case_" + String(i_index)}
+                  style={get_case_row_style()}
+                >
                   <label>
-                    <span style={get_label_style()}>{"case" + String(i_index + 1)}</span>
+                    <span style={get_label_style()}>
+                      {"case" + String(i_index + 1)}
+                    </span>
                     <input
                       value={s_case_value}
                       onChange={(o_event) => {
@@ -292,7 +335,9 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
           </label>
         </NodeDetailsSection>
 
-        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+        <RenderRuntimeResult
+          o_data={(o_data as Record<string, unknown>) || {}}
+        />
       </div>
     </div>
   );

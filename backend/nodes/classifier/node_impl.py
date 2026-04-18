@@ -3,10 +3,11 @@
 # history:
 # - 2026-04-14: Erste ausgelagerte Version. author Marcus Schlieper
 # - 2026-04-17: Erweiterung um stabile LLM-Klassifikation mit JSON-Schema, Confidence, Similarity-Matching und sauberer Fehlerbehandlung. author ChatGPT
+# - 2026-04-18: Default-Fallback bei zu niedriger LLM-Confidence und parallele Output-Handles. author ChatGPT
 
 import copy
-import json
 import difflib
+import json
 from typing import Any, Dict, List, Optional, Tuple
 
 from tools.LLM import llmTextGen
@@ -69,6 +70,9 @@ class ClassifierNode(BaseNode):
         i_timeout = int(o_data.get("i_timeout", 20000) or 20000)
         i_max_completion_tokens = int(o_data.get("max_completion_tokens", 2000) or 2000)
         d_similarity_threshold = float(str(o_data.get("d_similarity_threshold", "0.72")).strip() or "0.72")
+        d_min_confidence_threshold = float(
+            str(o_data.get("d_min_confidence_threshold", "0.75")).strip() or "0.75"
+        )
 
         o_primary_input = extract_primary_named_input(o_context.input_context)
         s_input_text = self._stringify_classifier_input(o_primary_input)
@@ -143,6 +147,22 @@ class ClassifierNode(BaseNode):
                     d_similarity_threshold=d_similarity_threshold,
                 )
                 s_classifier_mode = "llm"
+
+                if d_confidence < d_min_confidence_threshold:
+                    s_selected_handle = "default"
+                    s_selected_label = "default"
+                    s_selected_id = ""
+                    s_reason = "llm_confidence_below_threshold"
+                    o_llm_meta["success"] = False
+                    o_llm_meta["error_type"] = "llm_confidence_too_low"
+                    o_llm_meta["error_message"] = (
+                        f"LLM confidence {d_confidence} liegt unter dem Schwellwert "
+                        f"{d_min_confidence_threshold}."
+                    )
+                    o_llm_meta["matched_by"] = ""
+                    s_classifier_mode = "llm_default_fallback"
+                    d_confidence = 0.0
+
             except ClassifierLlmError as o_exc:
                 o_llm_meta = {
                     "used": True,
@@ -154,7 +174,6 @@ class ClassifierNode(BaseNode):
                     "matched_by": "",
                     "schema_used": True,
                 }
-
                 (
                     s_selected_handle,
                     s_selected_label,
@@ -183,16 +202,22 @@ class ClassifierNode(BaseNode):
         if not isinstance(o_passthrough_output, dict):
             o_passthrough_output = {"value": o_passthrough_output}
 
+        a_active_output_handles = self._build_active_output_handles(
+            s_selected_handle=s_selected_handle,
+        )
+
         o_main_output = {
             **copy.deepcopy(o_passthrough_output),
             "selected_handle": s_selected_handle,
             "selected_class_label": s_selected_label,
             "selected_class_id": s_selected_id,
             "class_name": s_selected_label,
+            "classifier_class_name": s_selected_label,
             "classifier_reason": s_reason,
             "classifier_mode": s_classifier_mode,
             "classifier_input_text": s_input_text,
             "confidence_score": d_confidence,
+            "active_output_handles": a_active_output_handles,
             "llm_meta": o_llm_meta,
             "resolved_data": {
                 **o_data,
@@ -206,6 +231,7 @@ class ClassifierNode(BaseNode):
                 "i_timeout": i_timeout,
                 "max_completion_tokens": i_max_completion_tokens,
                 "d_similarity_threshold": d_similarity_threshold,
+                "d_min_confidence_threshold": d_min_confidence_threshold,
                 "classes": a_normalized_classes,
             },
             "inputs_used": o_context.input_context,
@@ -219,7 +245,9 @@ class ClassifierNode(BaseNode):
                 "selected_class_label": "default",
                 "selected_class_id": "",
                 "class_name": "default",
+                "classifier_class_name": "default",
                 "confidence_score": 0.0,
+                "active_output_handles": ["output_main", "default"],
             },
         }
 
@@ -228,12 +256,17 @@ class ClassifierNode(BaseNode):
             if s_handle_key == "":
                 continue
 
+            s_class_label = str(o_class.get("s_label", "")).strip()
+            s_class_id = str(o_class.get("s_id", "")).strip()
+
             d_node_outputs[s_handle_key] = {
                 **copy.deepcopy(o_passthrough_output),
                 "selected_handle": s_handle_key,
-                "selected_class_label": str(o_class.get("s_label", "")).strip(),
-                "selected_class_id": str(o_class.get("s_id", "")).strip(),
-                "class_name": str(o_class.get("s_label", "")).strip(),
+                "selected_class_label": s_class_label,
+                "selected_class_id": s_class_id,
+                "class_name": s_class_label,
+                "classifier_class_name": s_class_label,
+                "active_output_handles": ["output_main", s_handle_key],
             }
 
         return {
@@ -245,6 +278,18 @@ class ClassifierNode(BaseNode):
                 "node_outputs": d_node_outputs,
             },
         }
+
+    def _build_active_output_handles(
+        self,
+        s_selected_handle: str,
+    ) -> List[str]:
+        a_handles: List[str] = ["output_main"]
+        s_safe_selected_handle = sanitize_handle_key(s_selected_handle)
+
+        if s_safe_selected_handle != "" and s_safe_selected_handle not in a_handles:
+            a_handles.append(s_safe_selected_handle)
+
+        return a_handles
 
     def _classify_with_keywords(
         self,
@@ -344,7 +389,11 @@ class ClassifierNode(BaseNode):
             "Nutze nur Werte aus der Klassenliste."
         )
 
-        s_effective_system_prompt = s_system_prompt or s_default_system_prompt
+        s_effective_system_prompt = (
+            s_system_prompt + "\n" + s_default_system_prompt
+            if s_system_prompt != ""
+            else s_default_system_prompt
+        )
 
         s_default_prompt = (
             "Klassifiziere den folgenden Eingabetext in genau eine Klasse.\n\n"
@@ -353,7 +402,11 @@ class ClassifierNode(BaseNode):
             "Gib das Ergebnis strukturiert zurück."
         )
 
-        s_effective_prompt = s_prompt or s_default_prompt
+        s_effective_prompt = (
+            s_prompt + "\n" + s_default_prompt
+            if s_prompt != ""
+            else s_default_prompt
+        )
 
         a_messages: List[Dict[str, str]] = [
             {
@@ -440,7 +493,6 @@ class ClassifierNode(BaseNode):
 
     def _parse_llm_json_response(self, s_response_text: str) -> Dict[str, Any]:
         s_clean = s_response_text.strip()
-
         if s_clean == "":
             raise ValueError("empty_llm_response")
 
@@ -467,6 +519,7 @@ class ClassifierNode(BaseNode):
                 return o_class, "handle_key", 1.0
 
         s_label_lower = s_label.strip().lower()
+
         if s_label_lower != "":
             for o_class in a_classes:
                 if str(o_class.get("s_label", "")).strip().lower() == s_label_lower:

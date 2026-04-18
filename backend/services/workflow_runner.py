@@ -14,6 +14,7 @@
 # - 2026-04-08: Echte Backend Implementierung fuer HTTP Node und LLM Node mit sicherer Validierung ergaenzt. author Marcus Schlieper
 # - 2026-04-12: Classifier Node und verbessertes Switch Routing mit case Werten ergaenzt. author Marcus Schlieper
 # - 2026-04-14: Node Implementierungen in eigenes Repository und dynamischen Loader ausgelagert. author Marcus Schlieper
+# - 2026-04-18: Mehrere aktive Output-Handles fuer switch und classifier Routing ergaenzt. author ChatGPT
 
 import copy
 import json
@@ -22,13 +23,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
-from services.node_runtime.node_loader import NodeLoader
 from services.node_runtime.node_execution_context import NodeExecutionContext
+from services.node_runtime.node_loader import NodeLoader
 
 
 class WorkflowRunner:
     # Fuehrt einen Workflow sicher anhand eines Graphen aus.
-
     def __init__(self, websocket_manager) -> None:
         self.websocket_manager = websocket_manager
         self.node_loader = NodeLoader()
@@ -74,6 +74,7 @@ class WorkflowRunner:
         d_results_by_node_id: Dict[str, Dict[str, Any]] = {}
         d_workflow_map = self._build_workflow_map(a_workflow)
         d_node_enabled: Dict[str, bool] = self._build_initial_enabled_map(a_workflow)
+
         b_failed = False
         s_error = ""
 
@@ -106,6 +107,7 @@ class WorkflowRunner:
 
             for o_result in a_level_results:
                 a_results.append(o_result)
+
                 s_node_id = str(o_result.get("node_id", "")).strip()
                 if s_node_id != "":
                     d_results_by_node_id[s_node_id] = o_result
@@ -144,6 +146,7 @@ class WorkflowRunner:
             "workflow_status",
             {"status": "finished", "workflow_name": s_name},
         )
+
         return {
             "success": True,
             "workflow_name": s_name,
@@ -195,11 +198,13 @@ class WorkflowRunner:
 
             if s_source == "" or s_target == "":
                 raise ValueError("edge_source_target_required")
+
             if s_source not in d_node_map or s_target not in d_node_map:
                 raise ValueError("edge_references_unknown_node")
 
             if s_target not in d_node_map[s_source]["NextNodes"]:
                 d_node_map[s_source]["NextNodes"].append(s_target)
+
             if s_source not in d_node_map[s_target]["PrevNodes"]:
                 d_node_map[s_target]["PrevNodes"].append(s_source)
 
@@ -212,6 +217,7 @@ class WorkflowRunner:
             if s_target_handle != "":
                 if s_target_handle not in d_node_map[s_target]["target_handles"]:
                     d_node_map[s_target]["target_handles"][s_target_handle] = []
+
                 d_node_map[s_target]["target_handles"][s_target_handle].append(
                     {
                         "source_node_id": s_source,
@@ -263,7 +269,6 @@ class WorkflowRunner:
                 s_key = f"{s_kind}_{i_index + 1}"
 
             s_key = self._sanitize_handle_key(s_key)
-
             if s_key == "":
                 s_key = f"{s_kind}_{i_index + 1}"
 
@@ -339,6 +344,7 @@ class WorkflowRunner:
             s_node_id = str(o_item.get("id", "")).strip()
             if s_node_id == "":
                 raise ValueError("workflow_node_id_required")
+
             d_workflow_map[s_node_id] = o_item
             d_in_degree[s_node_id] = len(o_item.get("PrevNodes", []))
 
@@ -420,6 +426,7 @@ class WorkflowRunner:
                     "reason": "node_disabled_by_routing",
                 },
             )
+
             a_results.append(o_result)
 
         return a_results
@@ -489,7 +496,6 @@ class WorkflowRunner:
                 s_node_type=s_node_type,
                 o_context=o_context,
             )
-
             o_result = self._normalize_node_result(o_result, o_item)
 
             self.websocket_manager.emit_status(
@@ -639,6 +645,7 @@ class WorkflowRunner:
                 s_safe_target_handle = self._sanitize_handle_key(s_target_handle)
                 if s_safe_target_handle == "":
                     continue
+
                 if not isinstance(a_sources, list) or len(a_sources) == 0:
                     continue
 
@@ -718,6 +725,7 @@ class WorkflowRunner:
         s_node_id = str(o_result.get("node_id", "")).strip()
         if s_node_id == "":
             return
+
         if s_node_id not in d_workflow_map:
             return
 
@@ -751,17 +759,39 @@ class WorkflowRunner:
             if not isinstance(o_output, dict):
                 o_output = {}
 
+            d_source_handles = o_workflow_item.get("source_handles", {})
+            a_active_output_handles = o_output.get("active_output_handles", [])
+
+            if not isinstance(a_active_output_handles, list):
+                a_active_output_handles = []
+
             s_selected_handle = self._sanitize_handle_key(
                 str(o_output.get("selected_handle", "")).strip()
             )
-            d_source_handles = o_workflow_item.get("source_handles", {})
 
-            if s_selected_handle == "":
+            if s_selected_handle != "":
+                a_active_output_handles.append(s_selected_handle)
+
+            a_normalized_handles: List[str] = []
+            d_seen_handles: Dict[str, bool] = {}
+
+            for o_handle in a_active_output_handles:
+                s_handle = self._sanitize_handle_key(str(o_handle).strip())
+                if s_handle == "":
+                    continue
+                if s_handle in d_seen_handles:
+                    continue
+                d_seen_handles[s_handle] = True
+                a_normalized_handles.append(s_handle)
+
+            if len(a_normalized_handles) == 0:
                 return
 
-            a_selected_next_nodes = d_source_handles.get(s_selected_handle, [])
-            for s_next_node_id in a_selected_next_nodes:
-                d_node_enabled[s_next_node_id] = True
+            for s_handle in a_normalized_handles:
+                a_selected_next_nodes = d_source_handles.get(s_handle, [])
+                for s_next_node_id in a_selected_next_nodes:
+                    d_node_enabled[s_next_node_id] = True
+
             return
 
         for s_next_node_id in a_next_nodes:

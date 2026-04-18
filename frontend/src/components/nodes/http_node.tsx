@@ -15,7 +15,7 @@ author Marcus Schlieper
 */
 
 import React from "react";
-import { NodeProps, useReactFlow  } from "@xyflow/react";
+import { NodeProps, useReactFlow } from "@xyflow/react";
 import { IHttpNodeData } from "../../types/workflow";
 import { NodeDeleteButton } from "../node_delete_button";
 import { use_workflow_store } from "../../store/workflow_store";
@@ -37,8 +37,8 @@ import {
 
 export function HttpNode({ id, data }: NodeProps): JSX.Element {
   const { getNodes, getEdges } = useReactFlow();
-const a_nodes = getNodes();
-const a_edges = getEdges();
+  const a_nodes = getNodes();
+  const a_edges = getEdges();
 
   const o_data = (data as IHttpNodeData) || ({} as IHttpNodeData);
   const { update_node_data } = use_workflow_store();
@@ -51,7 +51,7 @@ const a_edges = getEdges();
         s_label: "Anfrage",
         s_description: "Hauptdaten fuer den HTTP Aufruf",
       },
-    ],
+    ]
   );
 
   const a_output_handles = get_safe_handle_definitions(
@@ -62,7 +62,7 @@ const a_edges = getEdges();
         s_label: "Antwort",
         s_description: "Ergebnis des HTTP Aufrufs",
       },
-    ],
+    ]
   );
 
   const s_api =
@@ -81,36 +81,39 @@ const a_edges = getEdges();
       : 0;
 
   const s_preview =
-    s_method + " " + (s_api.trim() !== "" ? s_api.trim().slice(0, 18) : "no_api");
+    s_method +
+    " " +
+    (s_api.trim() !== "" ? s_api.trim().slice(0, 18) : "no_api");
 
   return (
     <div style={get_node_wrapper_style()}>
       <RenderNamedHandles
-  a_handles={a_input_handles}
-  s_type="target"
-  o_data={(o_data as Record) || {}}
-  s_node_id={id}
-  a_nodes={a_nodes}
-  a_edges={a_edges}
-/>
+        a_handles={a_input_handles}
+        s_type="target"
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
+      />
 
-<RenderNamedHandles
-  a_handles={a_output_handles}
-  s_type="source"
-  o_data={(o_data as Record) || {}}
-  s_node_id={id}
-  a_nodes={a_nodes}
-  a_edges={a_edges}
-/>
+      <RenderNamedHandles
+        a_handles={a_output_handles}
+        s_type="source"
+        o_data={(o_data as Record) || {}}
+        s_node_id={id}
+        a_nodes={a_nodes}
+        a_edges={a_edges}
+      />
 
       <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
 
-      <div style={get_node_header_style("rgba(59, 130, 246, 0.18)", "rgba(59, 130, 246, 0.34)")}>
-        <NodeHeaderTitle
-          s_kind="http"
-          s_title="HTTP"
-          s_subtitle={s_preview}
-        />
+      <div
+        style={get_node_header_style(
+          "rgba(59, 130, 246, 0.18)",
+          "rgba(59, 130, 246, 0.34)"
+        )}
+      >
+        <NodeHeaderTitle s_kind="http" s_title="HTTP" s_subtitle={s_preview} />
         <NodeDeleteButton node_id={id} />
       </div>
 
@@ -119,7 +122,11 @@ const a_edges = getEdges();
           Inputs {a_input_handles.length} - Outputs {a_output_handles.length}
         </div>
 
-        <NodeDetailsSection s_title="HTTP settings" s_meta="request" b_default_open={false}>
+        <NodeDetailsSection
+          s_title="HTTP settings"
+          s_meta="request"
+          b_default_open={false}
+        >
           <label>
             <span style={get_label_style()}>api</span>
             <input
@@ -164,7 +171,9 @@ const a_edges = getEdges();
           </label>
         </NodeDetailsSection>
 
-        <RenderRuntimeResult o_data={(o_data as Record<string, unknown>) || {}} />
+        <RenderRuntimeResult
+          o_data={(o_data as Record<string, unknown>) || {}}
+        />
       </div>
     </div>
   );
