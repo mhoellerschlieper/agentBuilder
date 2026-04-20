@@ -44,13 +44,7 @@ class ToolWebSearch(BaseNode):
         s_query = str(o_data.get("s_query", "")).strip()
         i_limit = self._safe_int(o_data.get("i_limit", 5), 5)
         i_timeout = self._safe_int(o_data.get("i_timeout", 15000), 15000)
-        s_user_agent = str(
-            o_data.get(
-                "s_user_agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            )
-        ).strip()
+        
 
         if s_query == "":
             s_query = self._build_query_from_inputs(o_context.input_context)
@@ -73,7 +67,6 @@ class ToolWebSearch(BaseNode):
             s_query=s_query,
             i_limit=i_limit,
             i_timeout=i_timeout,
-            s_user_agent=s_user_agent,
         )
 
        
@@ -285,7 +278,6 @@ class ToolWebSearch(BaseNode):
         s_query: str,
         i_limit: int,
         i_timeout: int,
-        s_user_agent: str,
     ) -> List[Dict[str, Any]]:
         import playwright
         from playwright.sync_api import sync_playwright
@@ -295,12 +287,20 @@ class ToolWebSearch(BaseNode):
             
             s_url = f"https://duckduckgo.com/?t=h_&q={quote_plus(s_query)}&ia=web"
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=False)
+                browser = p.chromium.launch(headless=False, args=[
+                    "--window-position=-2000,-2000",
+                    "--window-size=1280,800",
+                ],)
                 context = browser.new_context()
 
                 self.page = context.new_page()
+
                 self.page.goto(s_url)
+                
                 title = self.page.title()
+                
+                self.page.set_default_timeout(i_timeout)
+                self.page.set_default_navigation_timeout(i_timeout)
                         
                 self.page.save_screenshot = self.page.screenshot
 
@@ -319,9 +319,13 @@ class ToolWebSearch(BaseNode):
                 #linkedImages = data["linkedImages"]
                 linkedHomepage = data["linkedHomepage"]
                 
+                context.close()
+                browser.close()
+                
         except Exception as e:
             print("Error in BrowserTool.tool_runner: "+str(e))
             
+        linkedHomepage = linkedHomepage[:i_limit]
         return linkedHomepage
 
     def _safe_int(self, o_value: Any, i_default: int) -> int:
