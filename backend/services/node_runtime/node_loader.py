@@ -6,6 +6,7 @@
 import hashlib
 import importlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -42,6 +43,11 @@ class NodeLoader:
             s_module_path = str(o_node_entry.get("s_module_path", "")).strip()
             s_class_name = str(o_node_entry.get("s_class_name", "")).strip()
 
+            str_path_name = s_module_path.replace('.','/')
+            if not os.path.exists('./'+str_path_name+'.py'):
+                print("MISSING MODULE: " + s_module_path)
+                continue
+            
             o_module = importlib.import_module(s_module_path)
             importlib.reload(o_module)
 

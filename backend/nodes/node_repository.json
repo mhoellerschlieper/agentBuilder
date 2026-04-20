@@ -1,6 +1,6 @@
 {
   "s_repository_name": "workflow_nodes",
-  "s_version": "1.0.0",
+  "s_version": "1.1.0",
   "nodes": [
     {
       "s_node_type": "start",
@@ -83,6 +83,146 @@
       "s_node_type": "comment",
       "s_module_path": "nodes.comment.node_impl",
       "s_class_name": "CommentNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_email_send",
+      "s_module_path": "nodes.tool_email_send.node_impl",
+      "s_class_name": "ToolEmailSend",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_web_search",
+      "s_module_path": "nodes.tool_web_search.node_impl",
+      "s_class_name": "ToolWebSearch",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_pdf_create",
+      "s_module_path": "nodes.tool_pdf_create.node_impl",
+      "s_class_name": "ToolPdfCreate",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_pdf_extract_text",
+      "s_module_path": "nodes.tool_pdf_extract_text.node_impl",
+      "s_class_name": "ToolPdfExtractText",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_excel_read",
+      "s_module_path": "nodes.tool_excel_read.node_impl",
+      "s_class_name": "ToolExcelRead",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_excel_write",
+      "s_module_path": "nodes.tool_excel_write.node_impl",
+      "s_class_name": "ToolExcelWrite",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_mysql_query",
+      "s_module_path": "nodes.tool_mysql_query.node_impl",
+      "s_class_name": "ToolMysqlQuery",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_weather_current",
+      "s_module_path": "nodes.tool_weather_current.node_impl",
+      "s_class_name": "ToolWeatherCurrent",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_news_search",
+      "s_module_path": "nodes.tool_news_search.node_impl",
+      "s_class_name": "ToolNewsSearch",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_translate_text",
+      "s_module_path": "nodes.tool_translate_text.node_impl",
+      "s_class_name": "ToolTranslateText",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_text_summarize",
+      "s_module_path": "nodes.tool_text_summarize.node_impl",
+      "s_class_name": "ToolTextSummarize",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_sentiment_analyze",
+      "s_module_path": "nodes.tool_sentiment_analyze.node_impl",
+      "s_class_name": "ToolSentimentAnalyze",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_keyword_extract",
+      "s_module_path": "nodes.tool_keyword_extract.node_impl",
+      "s_class_name": "ToolKeywordExtract",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_log_write",
+      "s_module_path": "nodes.tool_log_write.node_impl",
+      "s_class_name": "ToolLogWrite",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_email_forward",
+      "s_module_path": "nodes.tool_email_forward.node_impl",
+      "s_class_name": "ToolEmailForward",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_email_read",
+      "s_module_path": "nodes.tool_email_read.node_impl",
+      "s_class_name": "ToolEmailRead",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_email_list",
+      "s_module_path": "nodes.tool_email_list.node_impl",
+      "s_class_name": "ToolEmailList",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_email_delete",
+      "s_module_path": "nodes.tool_email_delete.node_impl",
+      "s_class_name": "ToolEmailDelete",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "variable_tool",
+      "s_module_path": "nodes.variable_tool.node_impl",
+      "s_class_name": "VariableTool",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "show_tool",
+      "s_module_path": "nodes.show_tool.node_impl",
+      "s_class_name": "ShowTool",
       "s_version": "1.0.0",
       "b_enabled": true
     }

@@ -6,6 +6,7 @@
 # - 2026-04-11: Tools Endpunkt fuer Frontend Tool Registry aus JSON Datei ergaenzt. author Marcus Schlieper
 # author Marcus Schlieper
 # venv aktivieren:  .\.venv\Scripts\Activate.ps1 
+# {{input:input_main.results}}
 
 from functools import wraps
 from pathlib import Path

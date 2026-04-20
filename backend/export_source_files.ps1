@@ -220,8 +220,8 @@ function Get-Configured-File-Patterns {
             ".py"
         )
         a_files = @(
-            "nodes\llm\*.*",
-            "nodes\classifier\*.*"
+            "tools_schemas.json",
+            "services\workflow_runner.py"
         )
     }
 
