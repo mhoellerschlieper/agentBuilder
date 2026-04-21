@@ -700,7 +700,7 @@ function render_input_field(
   if (o_field.s_field_type === "select") {
     return (
       <select
-        value={get_string_value(value)}
+        value={get_string_value(value) || o_field.d_default}
         onChange={(o_event) => update_value(o_field.s_key, o_event.target.value)}
         style={get_input_style()}
       >
@@ -717,7 +717,7 @@ function render_input_field(
   if (o_field.s_field_type === "checkbox") {
     return (
       <select
-        value={get_boolean_value(value) ? "true" : "false"}
+        value={get_boolean_value(value || o_field.d_default) ? "true" : "false"}
         onChange={(o_event) => update_value(o_field.s_key, o_event.target.value === "true")}
         style={get_input_style()}
       >

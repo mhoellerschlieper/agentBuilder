@@ -82,6 +82,75 @@
         }
       ]
     },
+     {
+      "s_type": "tool_web_crawler",
+      "s_label": "Web Crawler",
+      "s_category": "Research",
+      "s_group": "Research",
+      "s_subgroup": "Web",
+      "s_icon": "search",
+      "s_description": "Fuehrt ein serverseitige Web Tiefensuche aus.",
+      "s_class_name": "node_tool",
+      "a_input_handles": [
+        "input"
+      ],
+      "a_output_handles": [
+        "output"
+      ],
+      "a_fields": [
+        {
+          "s_key": "s_query",
+          "s_label": "Query",
+          "s_field_type": "textarea",
+          "b_required": true,
+          "s_default": ""
+        },
+        {
+          "s_key": "i_max_depth",
+          "s_label": "max Depth",
+          "s_field_type": "number",
+          "b_required": true,
+          "d_default": 1,
+          "d_min": 1,
+          "d_max": 20
+        },
+        {
+          "s_key": "i_max_pages",
+          "s_label": "max Pages",
+          "s_field_type": "number",
+          "b_required": true,
+          "d_default": 20,
+          "d_min": 1,
+          "d_max": 20
+        },
+        {
+          "s_key": "i_timeout",
+          "s_label": "Timeout",
+          "s_field_type": "number",
+          "b_required": true,
+          "d_default": 15000,
+          "d_min": 1000,
+          "d_max": 2000000
+        },
+        {
+          "s_key": "b_same_host_only",
+          "s_label": "same host only",
+          "s_field_type": "checkbox",
+          "b_required": true,
+          "d_default": true
+        },
+        {
+          "s_key": "s_result_variable",
+          "s_label": "Result Variable",
+          "s_field_type": "variable_select",
+          "a_allowed_types": [
+            "array",
+            "object",
+            "string"
+          ]
+        }
+      ]
+    },
     {
       "s_type": "tool_pdf_create",
       "s_label": "PDF Create",

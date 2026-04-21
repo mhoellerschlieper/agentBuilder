@@ -101,6 +101,13 @@
       "b_enabled": true
     },
     {
+      "s_node_type": "tool_web_crawler",
+      "s_module_path": "nodes.tool_web_crawler.node_impl",
+      "s_class_name": "ToolWebCrawler",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
       "s_node_type": "tool_pdf_create",
       "s_module_path": "nodes.tool_pdf_create.node_impl",
       "s_class_name": "ToolPdfCreate",

@@ -12,7 +12,7 @@ const s_api_token = "change_this_token";
 
 const api_client = axios.create({
   baseURL: s_base_url,
-  timeout: 10000,
+  timeout: 100000,
   headers: {
     Authorization: `Bearer ${s_api_token}`,
     "Content-Type": "application/json",
