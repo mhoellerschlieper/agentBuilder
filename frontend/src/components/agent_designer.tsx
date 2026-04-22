@@ -1,6 +1,5 @@
 /* file: frontend/src/components/agent_designer.tsx
-description: Agent designer with stable side menus, workflow canvas, runtime status,
-chat integration and robust workflow status handling.
+description: Agent designer with file actions, workflow naming, save, save as, and rename support.
 history:
 - 2026-03-25: Initial visual workflow editor created. author Marcus Schlieper
 - 2026-03-29: Tool registry node types added. author Marcus Schlieper
@@ -11,6 +10,7 @@ history:
 - 2026-04-12: Helper lines corrected to start from dragged node and only show on real alignment matches. author Marcus Schlieper
 - 2026-04-12: Runtime data for input and output handle displays extended. author Marcus Schlieper
 - 2026-04-13: Workflow finished handling hardened with fallback via runner result. author Marcus Schlieper
+- 2026-04-22: Save as, overwrite save, new workflow naming, and inline workflow rename added. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -29,6 +29,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import {
   FiActivity,
+  FiCheck,
   FiClipboard,
   FiCopy,
   FiCrosshair,
@@ -57,9 +58,9 @@ import {
   FiSun,
   FiTrash2,
   FiUpload,
+  FiX,
 } from "react-icons/fi";
 import type { IconType } from "react-icons";
-
 import { ChatPanel } from "./chat_panel";
 import { CanvasContextMenu } from "./canvas_context_menu";
 import { CustomEdge } from "./custom_edge";
@@ -79,7 +80,6 @@ import { ClassifierNode } from "./nodes/classifier_node";
 import { LoopForNode } from "./nodes/loop_for_node";
 import { StartNode } from "./nodes/start_node";
 import { ToolNode } from "./nodes/tool_node";
-
 import { use_workflow_store } from "../store/workflow_store";
 import { use_tool_registry_store } from "../store/tool_registry_store";
 import { parse_chat_to_commands } from "../services/intent_parser";
@@ -89,6 +89,7 @@ import {
 } from "../services/workflow_command_executor";
 import { build_auto_layout } from "../services/workflow_layout";
 import { get_socket } from "../services/socket";
+import { RunnerPanel, type TRunnerPanelHandle, type TRunWorkflowResult } from "./runner_panel";
 
 type TRecord = Record<string, unknown>;
 
@@ -185,12 +186,6 @@ type TRunNodeResult = {
   error?: string;
 };
 
-type TRunWorkflowResult = {
-  success?: boolean;
-  status?: string;
-  error?: string;
-  results?: TRunNodeResult[];
-};
 
 type TWorkflowStoreShape = {
   s_workflow_name: string;
@@ -326,7 +321,7 @@ function get_group_container_style(): React.CSSProperties {
 }
 
 function get_group_button_style(
-  b_active: boolean = false,
+  b_active: boolean = false
 ): React.CSSProperties {
   return {
     width: "100%",
@@ -429,7 +424,7 @@ function get_workspace_panel_body_style(): React.CSSProperties {
 
 function get_toolbar_action_button_style(
   b_active: boolean = false,
-  b_disabled: boolean = false,
+  b_disabled: boolean = false
 ): React.CSSProperties {
   return {
     width: "100%",
@@ -446,8 +441,8 @@ function get_toolbar_action_button_style(
     color: b_disabled
       ? "var(--color_text_muted)"
       : b_active
-        ? "var(--color_accent_text)"
-        : "var(--color_text)",
+      ? "var(--color_accent_text)"
+      : "var(--color_text)",
     borderRadius: "12px",
     cursor: b_disabled ? "not-allowed" : "pointer",
     opacity: b_disabled ? 0.55 : 1,
@@ -460,24 +455,24 @@ function get_toolbar_action_button_style(
 function get_toolbar_action_icon_style(
   b_active: boolean = false,
   b_disabled: boolean = false,
-  s_icon_color?: string,
+  s_icon_color?: string
 ): React.CSSProperties {
   return {
     fontSize: "1rem",
     color: b_disabled
       ? "var(--color_text_muted)"
       : s_icon_color
-        ? s_icon_color
-        : b_active
-          ? "var(--color_accent_text)"
-          : "var(--color_text)",
+      ? s_icon_color
+      : b_active
+      ? "var(--color_accent_text)"
+      : "var(--color_text)",
     flexShrink: 0,
   };
 }
 
 function get_toolbar_action_label_style(
   b_active: boolean = false,
-  b_disabled: boolean = false,
+  b_disabled: boolean = false
 ): React.CSSProperties {
   return {
     fontSize: "0.82rem",
@@ -486,8 +481,8 @@ function get_toolbar_action_label_style(
     color: b_disabled
       ? "var(--color_text_muted)"
       : b_active
-        ? "var(--color_accent_text)"
-        : "var(--color_text)",
+      ? "var(--color_accent_text)"
+      : "var(--color_text)",
   };
 }
 
@@ -538,7 +533,7 @@ function get_canvas_wrapper_style(): React.CSSProperties {
 }
 
 function get_run_status_badge_style(
-  s_run_state: TWorkflowRunState,
+  s_run_state: TWorkflowRunState
 ): React.CSSProperties {
   let s_background = "rgba(107, 114, 128, 0.12)";
   let s_color = "#6b7280";
@@ -574,7 +569,7 @@ function get_run_status_badge_style(
 }
 
 function get_helper_line_segment_style(
-  o_segment: THelperLineSegment,
+  o_segment: THelperLineSegment
 ): React.CSSProperties {
   return {
     position: "absolute",
@@ -590,7 +585,7 @@ function get_helper_line_segment_style(
 }
 
 function get_node_execution_style(
-  s_node_status: TNodeExecutionStatus,
+  s_node_status: TNodeExecutionStatus
 ): React.CSSProperties | undefined {
   if (s_node_status === "running") {
     return {
@@ -599,7 +594,6 @@ function get_node_execution_style(
       background: "rgba(34, 197, 94, 0.06)",
     };
   }
-
   if (s_node_status === "success") {
     return {
       border: "2px solid #16a34a",
@@ -607,7 +601,6 @@ function get_node_execution_style(
       background: "rgba(22, 163, 74, 0.05)",
     };
   }
-
   if (s_node_status === "error") {
     return {
       border: "2px solid #dc2626",
@@ -615,7 +608,6 @@ function get_node_execution_style(
       background: "rgba(220, 38, 38, 0.05)",
     };
   }
-
   return undefined;
 }
 
@@ -638,10 +630,49 @@ function get_workflow_status_label(s_run_state: TWorkflowRunState): string {
   return "Workflow idle";
 }
 
+function get_title_bar_style(): React.CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    flexWrap: "wrap",
+  };
+}
+
+function get_title_button_style(): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "32px",
+    height: "32px",
+    borderRadius: "10px",
+    border: "1px solid var(--color_border)",
+    background: "var(--color_panel_elevated)",
+    color: "var(--color_text)",
+    cursor: "pointer",
+  };
+}
+
+function get_title_input_style(): React.CSSProperties {
+  return {
+    minWidth: "240px",
+    maxWidth: "420px",
+    padding: "8px 10px",
+    borderRadius: "10px",
+    border: "1px solid var(--color_border)",
+    background: "var(--color_panel_elevated)",
+    color: "var(--color_text)",
+    fontSize: "16px",
+    fontWeight: 700,
+    outline: "none",
+  };
+}
+
 function is_within_tolerance(
   d_value_a: number,
   d_value_b: number,
-  d_tolerance: number = d_alignment_tolerance_px,
+  d_tolerance: number = d_alignment_tolerance_px
 ): boolean {
   return Math.abs(d_value_a - d_value_b) <= d_tolerance;
 }
@@ -649,11 +680,10 @@ function is_within_tolerance(
 function build_vertical_helper_segment(
   d_x: number,
   o_source_box: TNodeBox,
-  o_target_box: TNodeBox,
+  o_target_box: TNodeBox
 ): THelperLineSegment {
   const d_top = Math.min(o_source_box.d_top, o_target_box.d_top);
   const d_bottom = Math.max(o_source_box.d_bottom, o_target_box.d_bottom);
-
   return {
     d_left: d_x,
     d_top,
@@ -665,11 +695,10 @@ function build_vertical_helper_segment(
 function build_horizontal_helper_segment(
   d_y: number,
   o_source_box: TNodeBox,
-  o_target_box: TNodeBox,
+  o_target_box: TNodeBox
 ): THelperLineSegment {
   const d_left = Math.min(o_source_box.d_left, o_target_box.d_left);
   const d_right = Math.max(o_source_box.d_right, o_target_box.d_right);
-
   return {
     d_left,
     d_top: d_y,
@@ -690,20 +719,19 @@ function get_runtime_maps_from_result(o_result: unknown): {
   }
 
   const o_safe_result = o_result as TRecord;
-
   const o_outputs =
     o_safe_result.output && typeof o_safe_result.output === "object"
       ? (o_safe_result.output as TRecord)
       : o_safe_result.outputs && typeof o_safe_result.outputs === "object"
-        ? (o_safe_result.outputs as TRecord)
-        : {};
+      ? (o_safe_result.outputs as TRecord)
+      : {};
 
   const o_inputs =
     o_safe_result.inputs && typeof o_safe_result.inputs === "object"
       ? (o_safe_result.inputs as TRecord)
       : o_safe_result.input && typeof o_safe_result.input === "object"
-        ? (o_safe_result.input as TRecord)
-        : {};
+      ? (o_safe_result.input as TRecord)
+      : {};
 
   return {
     o_outputs,
@@ -712,9 +740,11 @@ function get_runtime_maps_from_result(o_result: unknown): {
 }
 
 function is_finished_workflow_payload(
-  o_payload: TWorkflowStatusPayload,
+  o_payload: TWorkflowStatusPayload
 ): boolean {
-  const s_status = String(o_payload.status || "").trim().toLowerCase();
+  const s_status = String(o_payload.status || "")
+    .trim()
+    .toLowerCase();
 
   if (
     s_status === "finished" ||
@@ -726,7 +756,6 @@ function is_finished_workflow_payload(
   ) {
     return true;
   }
-
   if (o_payload.success === true) {
     return true;
   }
@@ -739,7 +768,6 @@ function is_finished_workflow_payload(
   if (o_payload.is_finished === true) {
     return true;
   }
-
   return false;
 }
 
@@ -780,14 +808,13 @@ function is_successful_run_result(o_result: unknown): boolean {
 }
 
 function extract_result_array(
-  o_payload: TWorkflowStatusPayload | TRunWorkflowResult | unknown,
+  o_payload: TWorkflowStatusPayload | TRunWorkflowResult | unknown
 ): TRunNodeResult[] {
   if (!o_payload || typeof o_payload !== "object") {
     return [];
   }
 
   const o_safe_payload = o_payload as { results?: unknown };
-
   return Array.isArray(o_safe_payload.results)
     ? (o_safe_payload.results as TRunNodeResult[])
     : [];
@@ -800,7 +827,7 @@ function apply_run_results_to_state(
   >,
   set_node_result_map: React.Dispatch<
     React.SetStateAction<Record<string, unknown>>
-  >,
+  >
 ): void {
   if (!Array.isArray(a_results) || a_results.length === 0) {
     return;
@@ -814,7 +841,6 @@ function apply_run_results_to_state(
       o_result && typeof o_result.node_id === "string"
         ? o_result.node_id.trim()
         : "";
-
     const s_status =
       o_result && typeof o_result.status === "string"
         ? o_result.status.trim()
@@ -852,9 +878,7 @@ function apply_run_results_to_state(
   }
 }
 
-function ToolbarActionButton(
-  o_props: TToolbarActionButtonProps,
-): JSX.Element {
+function ToolbarActionButton(o_props: TToolbarActionButtonProps): JSX.Element {
   const {
     Icon,
     on_click,
@@ -867,21 +891,22 @@ function ToolbarActionButton(
 
   return (
     <button
-      title={s_title}
+      aria-label={s_title}
+      disabled={b_disabled}
       onClick={() => {
         if (!b_disabled) {
           void on_click();
         }
       }}
-      disabled={b_disabled}
       style={get_toolbar_action_button_style(b_active, b_disabled)}
+      title={s_title}
       type="button"
     >
       <Icon
         style={get_toolbar_action_icon_style(
           b_active,
           b_disabled,
-          s_icon_color,
+          s_icon_color
         )}
       />
       <span style={get_toolbar_action_label_style(b_active, b_disabled)}>
@@ -924,23 +949,34 @@ function HoverMenuGroup(o_props: THoverMenuGroupProps): JSX.Element {
 
   return (
     <div
-      style={get_group_container_style()}
       onMouseEnter={open_menu}
       onMouseLeave={close_menu_delayed}
+      style={get_group_container_style()}
     >
       <button
-        style={get_group_button_style(b_open)}
-        type="button"
         onClick={() => {
           set_open((b_prev) => !b_prev);
         }}
+        style={get_group_button_style(b_open)}
+        title={o_group.s_group_label}
+        type="button"
       >
         <o_group.Icon style={get_group_button_icon_style()} />
-        <span style={get_group_button_label_style()}>{o_group.s_group_label}</span>
+        <span style={get_group_button_label_style()}>
+          {o_group.s_group_label}
+        </span>
       </button>
 
       {b_open && (
-        <div style={get_flyout_style_left(b_right)}>
+        <div
+          onMouseEnter={open_menu}
+          onMouseLeave={close_menu_delayed}
+          style={
+            b_right
+              ? get_flyout_style_right(true)
+              : get_flyout_style_left(false)
+          }
+        >
           <p style={get_flyout_title_style()}>{o_group.s_group_label}</p>
           <div style={get_action_list_style()}>
             {o_group.a_actions.map((o_action) => (
@@ -1006,10 +1042,16 @@ function AgentDesignerContent(): JSX.Element {
   const [s_active_workspace_panel, set_active_workspace_panel] =
     useState("workspace_tabs");
 
+  const [s_current_file_name, set_current_file_name] = useState("");
+  const [b_is_renaming_workflow, set_is_renaming_workflow] = useState(false);
+  const [s_rename_value, set_rename_value] = useState("");
+
   const o_socket = useMemo(() => get_socket(), []);
   const o_react_flow = useReactFlow();
   const o_file_input_ref = useRef<HTMLInputElement | null>(null);
   const o_right_sidebar_tabs_ref = useRef<TRightSidebarTabsHandle | null>(null);
+
+  const o_runner_panel_ref = useRef<TRunnerPanelHandle | null>(null);
 
   const o_dynamic_node_types = useMemo((): NodeTypes => {
     const o_result: NodeTypes = {
@@ -1040,7 +1082,8 @@ function AgentDesignerContent(): JSX.Element {
       const o_existing_style =
         o_node.style && typeof o_node.style === "object" ? o_node.style : {};
       const o_runtime_style = get_node_execution_style(s_node_status);
-      const { o_outputs, o_inputs } = get_runtime_maps_from_result(o_node_result);
+      const { o_outputs, o_inputs } =
+        get_runtime_maps_from_result(o_node_result);
 
       return {
         ...o_node,
@@ -1065,6 +1108,54 @@ function AgentDesignerContent(): JSX.Element {
   }, [nodes, o_node_status_map, o_node_result_map]);
 
   useEffect(() => {
+    const s_safe_name = get_safe_workflow_name(s_workflow_name);
+    set_synchronized_file_name_if_empty(s_safe_name);
+  }, [s_workflow_name]);
+
+  function set_synchronized_file_name_if_empty(s_name: string): void {
+    set_current_file_name((s_prev) => {
+      if (typeof s_prev !== "string" || s_prev.trim() === "") {
+        return s_name;
+      }
+      return s_prev;
+    });
+  }
+
+  function get_safe_workflow_name(s_name: string): string {
+    const s_trimmed = typeof s_name === "string" ? s_name.trim() : "";
+    return s_trimmed === "" ? "Neuer Workflow" : s_trimmed;
+  }
+
+  function update_workflow_name_only(s_name: string): void {
+    const s_safe_name = get_safe_workflow_name(s_name);
+
+    apply_workflow_definition({
+      s_name: s_safe_name,
+      nodes,
+      edges,
+      global_variables: [],
+      canvas_settings,
+    });
+  }
+
+  function start_rename_workflow(): void {
+    set_rename_value(get_safe_workflow_name(s_workflow_name));
+    set_is_renaming_workflow(true);
+  }
+
+  function commit_rename_workflow(): void {
+    const s_safe_name = get_safe_workflow_name(s_rename_value);
+    update_workflow_name_only(s_safe_name);
+    set_current_file_name(s_safe_name);
+    set_is_renaming_workflow(false);
+  }
+
+  function cancel_rename_workflow(): void {
+    set_rename_value(get_safe_workflow_name(s_workflow_name));
+    set_is_renaming_workflow(false);
+  }
+
+  useEffect(() => {
     function on_connect_socket(): void {
       set_live_logs((a_prev) => [...a_prev, "socket_connected"]);
     }
@@ -1087,7 +1178,9 @@ function AgentDesignerContent(): JSX.Element {
           ? (o_payload as TWorkflowStatusPayload)
           : {};
 
-      const s_status = String(o_safe_payload.status || "").trim().toLowerCase();
+      const s_status = String(o_safe_payload.status || "")
+        .trim()
+        .toLowerCase();
 
       if (s_status === "started") {
         set_workflow_run_state("running");
@@ -1104,7 +1197,7 @@ function AgentDesignerContent(): JSX.Element {
       apply_run_results_to_state(
         extract_result_array(o_safe_payload),
         set_node_status_map,
-        set_node_result_map,
+        set_node_result_map
       );
 
       if (is_finished_workflow_payload(o_safe_payload)) {
@@ -1119,7 +1212,7 @@ function AgentDesignerContent(): JSX.Element {
         set_workflow_status_text(
           o_safe_payload.error
             ? `Workflow error: ${o_safe_payload.error}`
-            : "Workflow error",
+            : "Workflow error"
         );
         set_is_starting_workflow(false);
         return;
@@ -1190,9 +1283,9 @@ function AgentDesignerContent(): JSX.Element {
     document.documentElement.setAttribute("data-theme", s_next_theme);
   }
 
-  function get_default_empty_workflow_definition() {
+  function get_default_empty_workflow_definition(s_name?: string) {
     return {
-      s_name: "Neuer Workflow",
+      s_name: get_safe_workflow_name(s_name || "Neuer Workflow"),
       nodes: [],
       edges: [],
       global_variables: [],
@@ -1213,18 +1306,93 @@ function AgentDesignerContent(): JSX.Element {
     return nodes.length === 0 && edges.length === 0;
   }
 
+  function get_workflow_json_with_name(s_name: string): string {
+    const s_raw_json = copy_all_to_json();
+
+    try {
+      const o_json = JSON.parse(s_raw_json) as {
+        s_name?: string;
+        nodes?: unknown[];
+        edges?: unknown[];
+        global_variables?: unknown[];
+        canvas_settings?: unknown;
+      };
+
+      const o_safe_json = {
+        ...o_json,
+        s_name: get_safe_workflow_name(s_name),
+      };
+
+      return JSON.stringify(o_safe_json, null, 2);
+    } catch {
+      return s_raw_json;
+    }
+  }
+
+  async function download_json_file(
+    s_json: string,
+    s_file_name_without_extension: string
+  ): Promise<void> {
+    const o_blob = new Blob([s_json], {
+      type: "application/json;charset=utf-8",
+    });
+
+    const s_url = URL.createObjectURL(o_blob);
+    const o_link = document.createElement("a");
+
+    try {
+      o_link.href = s_url;
+      o_link.download = `${get_safe_file_name(
+        s_file_name_without_extension
+      )}.json`;
+      document.body.appendChild(o_link);
+      o_link.click();
+      o_link.remove();
+    } finally {
+      URL.revokeObjectURL(s_url);
+    }
+  }
+
+  function ask_for_workflow_name(s_default_name: string): string | null {
+    const s_prompt_value = window.prompt(
+      "Bitte einen Workflow Namen eingeben:",
+      get_safe_workflow_name(s_default_name)
+    );
+
+    if (s_prompt_value === null) {
+      return null;
+    }
+
+    const s_safe_name = get_safe_workflow_name(s_prompt_value);
+
+    if (s_safe_name.trim() === "") {
+      window.alert("Der Workflow Name ist ungueltig.");
+      return null;
+    }
+
+    return s_safe_name;
+  }
+
   function on_new_workflow_click(): void {
     if (!is_workflow_empty()) {
       const b_confirm = window.confirm(
-        "Der aktuelle Workflow ist nicht leer. Soll ein neuer leerer Workflow erstellt werden?",
+        "Der aktuelle Workflow ist nicht leer. Soll ein neuer leerer Workflow erstellt werden?"
       );
       if (!b_confirm) {
         return;
       }
     }
 
+    const s_new_name = ask_for_workflow_name("Neuer Workflow");
+    if (s_new_name === null) {
+      return;
+    }
+
     clear_selection();
-    apply_workflow_definition(get_default_empty_workflow_definition());
+    apply_workflow_definition(
+      get_default_empty_workflow_definition(s_new_name)
+    );
+    set_current_file_name(s_new_name);
     set_node_status_map({});
     set_node_result_map({});
     set_workflow_run_state("idle");
@@ -1236,7 +1404,7 @@ function AgentDesignerContent(): JSX.Element {
   }
 
   async function on_file_input_change(
-    o_event: React.ChangeEvent<HTMLInputElement>,
+    o_event: React.ChangeEvent<HTMLInputElement>
   ): Promise<void> {
     const o_file = o_event.target.files?.[0];
     o_event.target.value = "";
@@ -1255,11 +1423,13 @@ function AgentDesignerContent(): JSX.Element {
         canvas_settings?: typeof canvas_settings;
       };
 
+      const s_loaded_name =
+        typeof o_json.s_name === "string" && o_json.s_name.trim() !== ""
+          ? o_json.s_name
+          : o_file.name.replace(/\.json$/i, "");
+
       apply_workflow_definition({
-        s_name:
-          typeof o_json.s_name === "string" && o_json.s_name.trim() !== ""
-            ? o_json.s_name
-            : o_file.name.replace(/\.json$/i, ""),
+        s_name: s_loaded_name,
         nodes: Array.isArray(o_json.nodes) ? (o_json.nodes as Node[]) : [],
         edges: Array.isArray(o_json.edges) ? o_json.edges : [],
         global_variables: Array.isArray(o_json.global_variables)
@@ -1270,27 +1440,44 @@ function AgentDesignerContent(): JSX.Element {
             ? { ...canvas_settings, ...o_json.canvas_settings }
             : canvas_settings,
       });
+
+      set_current_file_name(s_loaded_name);
     } catch {
       window.alert("Die Datei konnte nicht geladen werden.");
     }
   }
 
+  async function on_save_as_file_click(): Promise<void> {
+    try {
+      const s_target_name = ask_for_workflow_name(
+        s_current_file_name || s_workflow_name || "workflow"
+      );
+
+      if (s_target_name === null) {
+        return;
+      }
+
+      update_workflow_name_only(s_target_name);
+      set_current_file_name(s_target_name);
+
+      const s_json = get_workflow_json_with_name(s_target_name);
+      await download_json_file(s_json, s_target_name);
+    } catch {
+      set_live_logs((a_prev) => [...a_prev, "workflow_save_as_error"]);
+    }
+  }
+
   async function on_save_file_click(): Promise<void> {
     try {
-      const s_json = copy_all_to_json();
-      const o_blob = new Blob([s_json], {
-        type: "application/json;charset=utf-8",
-      });
-      const s_file_name = `${get_safe_file_name(s_workflow_name)}.json`;
-      const s_url = URL.createObjectURL(o_blob);
-      const o_link = document.createElement("a");
+      const s_target_name = get_safe_workflow_name(
+        s_current_file_name || s_workflow_name || "workflow"
+      );
 
-      o_link.href = s_url;
-      o_link.download = s_file_name;
-      document.body.appendChild(o_link);
-      o_link.click();
-      o_link.remove();
-      URL.revokeObjectURL(s_url);
+      update_workflow_name_only(s_target_name);
+      set_current_file_name(s_target_name);
+
+      const s_json = get_workflow_json_with_name(s_target_name);
+      await download_json_file(s_json, s_target_name);
     } catch {
       set_live_logs((a_prev) => [...a_prev, "workflow_save_error"]);
     }
@@ -1393,30 +1580,101 @@ function AgentDesignerContent(): JSX.Element {
     }
   }
 
-  async function on_start_workflow_click(): Promise<void> {
-    if (b_is_starting_workflow) {
-      return;
-    }
-
-    if (!Array.isArray(nodes) || nodes.length === 0) {
-      window.alert("Es sind keine Nodes vorhanden.");
-      return;
-    }
-
-    set_is_starting_workflow(true);
-    set_workflow_run_state("starting");
-    set_workflow_status_text("Workflow starting");
-    set_node_status_map({});
-    set_node_result_map({});
-
-    try {
-      await o_right_sidebar_tabs_ref.current?.on_runner_run();
-    } catch {
-      set_workflow_run_state("error");
-      set_workflow_status_text("Workflow start error");
-      set_is_starting_workflow(false);
-    }
+  function get_hidden_panel_style(b_visible: boolean): React.CSSProperties {
+    return {
+      display: b_visible ? "block" : "none",
+      width: "100%",
+      height: "100%",
+      minHeight: 0,
+    };
   }
+
+  function get_hidden_runner_host_style(): React.CSSProperties {
+  return {
+    position: "absolute",
+    width: "1px",
+    height: "1px",
+    opacity: 0,
+    pointerEvents: "none",
+    overflow: "hidden",
+    left: 0,
+    top: 0,
+  };
+}
+  function on_runner_result(o_run_result: TRunWorkflowResult): void {
+  /*
+  central history:
+  - 2026-04-22: Shared run result handling added for dedicated hidden runner host. author Marcus Schlieper
+  */
+  if (!o_run_result || typeof o_run_result !== "object") {
+    set_workflow_run_state("error");
+    set_workflow_status_text("Workflow error");
+    set_is_starting_workflow(false);
+    return;
+  }
+
+  apply_run_results_to_state(
+    extract_result_array(o_run_result),
+    set_node_status_map,
+    set_node_result_map,
+  );
+
+  const b_success = is_successful_run_result(o_run_result);
+
+  if (b_success) {
+    set_workflow_run_state("finished");
+    set_workflow_status_text("Workflow finished");
+    set_is_starting_workflow(false);
+    return;
+  }
+
+  set_workflow_run_state("error");
+  set_workflow_status_text(
+    typeof o_run_result.error === "string" && o_run_result.error.trim() !== ""
+      ? `Workflow error: ${o_run_result.error}`
+      : "Workflow error",
+  );
+  set_is_starting_workflow(false);
+}
+  async function on_start_workflow_click(): Promise<void> {
+  /*
+  central history:
+  - 2026-04-22: Workflow start uses always mounted hidden runner panel. author Marcus Schlieper
+  */
+  if (b_is_starting_workflow) {
+    return;
+  }
+
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    window.alert("Es sind keine Nodes vorhanden.");
+    return;
+  }
+
+  set_is_starting_workflow(true);
+  set_workflow_run_state("starting");
+  set_workflow_status_text("Workflow starting");
+  set_node_status_map({});
+  set_node_result_map({});
+
+  try {
+    const o_runner_panel = o_runner_panel_ref.current;
+
+    if (!o_runner_panel || typeof o_runner_panel.on_run !== "function") {
+      throw new Error("Runner panel handle is not available.");
+    }
+
+    await o_runner_panel.on_run();
+  } catch (o_error) {
+    const s_error =
+      o_error instanceof Error && o_error.message.trim() !== ""
+        ? o_error.message.trim()
+        : "Workflow start error";
+
+    set_workflow_run_state("error");
+    set_workflow_status_text(`Workflow error: ${s_error}`);
+    set_is_starting_workflow(false);
+  }
+}
 
   function on_stop_workflow_click(): void {
     set_workflow_run_state("stopped");
@@ -1507,17 +1765,17 @@ function AgentDesignerContent(): JSX.Element {
         typeof o_node.width === "number" && Number.isFinite(o_node.width)
           ? o_node.width
           : typeof o_node.measured?.width === "number" &&
-              Number.isFinite(o_node.measured.width)
-            ? o_node.measured.width
-            : 0;
+            Number.isFinite(o_node.measured.width)
+          ? o_node.measured.width
+          : 0;
 
       const d_height =
         typeof o_node.height === "number" && Number.isFinite(o_node.height)
           ? o_node.height
           : typeof o_node.measured?.height === "number" &&
-              Number.isFinite(o_node.measured.height)
-            ? o_node.measured.height
-            : 0;
+            Number.isFinite(o_node.measured.height)
+          ? o_node.measured.height
+          : 0;
 
       if (d_width <= 0 || d_height <= 0) {
         return null;
@@ -1567,7 +1825,7 @@ function AgentDesignerContent(): JSX.Element {
         o_result.o_vertical_left = build_vertical_helper_segment(
           o_target_box.d_left,
           o_source_box,
-          o_target_box,
+          o_target_box
         );
         b_has_match = true;
       }
@@ -1579,7 +1837,7 @@ function AgentDesignerContent(): JSX.Element {
         o_result.o_vertical_center = build_vertical_helper_segment(
           o_target_box.d_center_x,
           o_source_box,
-          o_target_box,
+          o_target_box
         );
         b_has_match = true;
       }
@@ -1591,7 +1849,7 @@ function AgentDesignerContent(): JSX.Element {
         o_result.o_vertical_right = build_vertical_helper_segment(
           o_target_box.d_right,
           o_source_box,
-          o_target_box,
+          o_target_box
         );
         b_has_match = true;
       }
@@ -1603,7 +1861,7 @@ function AgentDesignerContent(): JSX.Element {
         o_result.o_horizontal_top = build_horizontal_helper_segment(
           o_target_box.d_top,
           o_source_box,
-          o_target_box,
+          o_target_box
         );
         b_has_match = true;
       }
@@ -1615,7 +1873,7 @@ function AgentDesignerContent(): JSX.Element {
         o_result.o_horizontal_center = build_horizontal_helper_segment(
           o_target_box.d_center_y,
           o_source_box,
-          o_target_box,
+          o_target_box
         );
         b_has_match = true;
       }
@@ -1627,7 +1885,7 @@ function AgentDesignerContent(): JSX.Element {
         o_result.o_horizontal_bottom = build_horizontal_helper_segment(
           o_target_box.d_bottom,
           o_source_box,
-          o_target_box,
+          o_target_box
         );
         b_has_match = true;
       }
@@ -1673,6 +1931,12 @@ function AgentDesignerContent(): JSX.Element {
       s_label: "Speichern",
       Icon: FiSave,
       on_click: on_save_file_click,
+    },
+    {
+      s_title: "Workflow speichern unter",
+      s_label: "Speichern unter",
+      Icon: FiDownload,
+      on_click: on_save_as_file_click,
     },
     {
       s_title: "Export",
@@ -1907,6 +2171,14 @@ function AgentDesignerContent(): JSX.Element {
 
   return (
     <div style={get_shell_style()}>
+      <input
+        accept=".json,application/json"
+        onChange={on_file_input_change}
+        ref={o_file_input_ref}
+        style={{ display: "none" }}
+        type="file"
+      />
+
       <div style={get_side_rail_style(false)}>
         <div style={get_brand_style()}>
           <h2 style={get_brand_title_style()}>ExpChat</h2>
@@ -1921,7 +2193,60 @@ function AgentDesignerContent(): JSX.Element {
       <div style={get_center_panel_style()}>
         <div style={get_canvas_top_style()}>
           <div style={get_canvas_title_group_style()}>
-            <h1 style={get_canvas_title_style()}>{s_workflow_name}</h1>
+            <div style={get_title_bar_style()}>
+              {!b_is_renaming_workflow ? (
+                <>
+                  <h1 style={get_canvas_title_style()}>
+                    {get_safe_workflow_name(s_workflow_name)}
+                  </h1>
+                  <button
+                    onClick={start_rename_workflow}
+                    style={get_title_button_style()}
+                    title="Workflow Namen aendern"
+                    type="button"
+                  >
+                    <FiEdit3 />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <input
+                    aria-label="Workflow Name"
+                    autoFocus={true}
+                    onChange={(o_event) => {
+                      set_rename_value(o_event.target.value);
+                    }}
+                    onKeyDown={(o_event) => {
+                      if (o_event.key === "Enter") {
+                        commit_rename_workflow();
+                      } else if (o_event.key === "Escape") {
+                        cancel_rename_workflow();
+                      }
+                    }}
+                    style={get_title_input_style()}
+                    type="text"
+                    value={s_rename_value}
+                  />
+                  <button
+                    onClick={commit_rename_workflow}
+                    style={get_title_button_style()}
+                    title="Umbenennung speichern"
+                    type="button"
+                  >
+                    <FiCheck />
+                  </button>
+                  <button
+                    onClick={cancel_rename_workflow}
+                    style={get_title_button_style()}
+                    title="Umbenennung abbrechen"
+                    type="button"
+                  >
+                    <FiX />
+                  </button>
+                </>
+              )}
+            </div>
+
             <p style={get_canvas_subtitle_style()}>
               {nodes.length} Nodes und {edges.length} Verbindungen
             </p>
@@ -1981,29 +2306,47 @@ function AgentDesignerContent(): JSX.Element {
           </ReactFlow>
 
           {o_helper_lines?.o_vertical_left && (
-            <div style={get_helper_line_segment_style(o_helper_lines.o_vertical_left)} />
+            <div
+              style={get_helper_line_segment_style(
+                o_helper_lines.o_vertical_left
+              )}
+            />
           )}
           {o_helper_lines?.o_vertical_center && (
-            <div style={get_helper_line_segment_style(o_helper_lines.o_vertical_center)} />
+            <div
+              style={get_helper_line_segment_style(
+                o_helper_lines.o_vertical_center
+              )}
+            />
           )}
           {o_helper_lines?.o_vertical_right && (
-            <div style={get_helper_line_segment_style(o_helper_lines.o_vertical_right)} />
+            <div
+              style={get_helper_line_segment_style(
+                o_helper_lines.o_vertical_right
+              )}
+            />
           )}
           {o_helper_lines?.o_horizontal_top && (
-            <div style={get_helper_line_segment_style(o_helper_lines.o_horizontal_top)} />
+            <div
+              style={get_helper_line_segment_style(
+                o_helper_lines.o_horizontal_top
+              )}
+            />
           )}
           {o_helper_lines?.o_horizontal_center && (
             <div
-              style={get_helper_line_segment_style(o_helper_lines.o_horizontal_center)}
+              style={get_helper_line_segment_style(
+                o_helper_lines.o_horizontal_center
+              )}
             />
           )}
           {o_helper_lines?.o_horizontal_bottom && (
             <div
-              style={get_helper_line_segment_style(o_helper_lines.o_horizontal_bottom)}
+              style={get_helper_line_segment_style(
+                o_helper_lines.o_horizontal_bottom
+              )}
             />
           )}
-
-          <CanvasContextMenu />
         </div>
       </div>
 
@@ -2015,12 +2358,14 @@ function AgentDesignerContent(): JSX.Element {
             <button
               key={o_panel.s_panel_id}
               onClick={() => set_active_workspace_panel(o_panel.s_panel_id)}
-              title={o_panel.s_label}
               style={get_group_button_style(b_active)}
+              title={o_panel.s_label}
               type="button"
             >
               <o_panel.Icon style={get_group_button_icon_style()} />
-              <span style={get_group_button_label_style()}>{o_panel.s_label}</span>
+              <span style={get_group_button_label_style()}>
+                {o_panel.s_label}
+              </span>
             </button>
           );
         })}
@@ -2028,75 +2373,55 @@ function AgentDesignerContent(): JSX.Element {
         <div style={get_flyout_style_right(true)}>
           <h3 style={get_flyout_title_style()}>
             {a_workspace_panels.find(
-              (o_panel) => o_panel.s_panel_id === s_active_workspace_panel,
+              (o_panel) => o_panel.s_panel_id === s_active_workspace_panel
             )?.s_label || "Workspace"}
           </h3>
 
           <div style={get_workspace_panel_body_style()}>
-            {s_active_workspace_panel === "chat" && (
-              <ChatPanel
-                a_messages={a_safe_chat_messages}
-                on_submit={on_submit_chat_message}
-              />
-            )}
+  {s_active_workspace_panel === "chat" && (
+    <ChatPanel
+      a_messages={a_safe_chat_messages}
+      on_submit_message={on_submit_chat_message}
+    />
+  )}
 
-            {s_active_workspace_panel === "telemetry" && (
-              <div style={get_action_list_style()}>
-                {a_live_logs.length === 0 ? (
-                  <div>No live events</div>
-                ) : (
-                  a_live_logs.map((s_log, i_index) => (
-                    <div key={`live_log_${i_index}`}>{s_log}</div>
-                  ))
-                )}
-              </div>
-            )}
+  {s_active_workspace_panel === "telemetry" && (
+    <div style={{ fontSize: "12px", color: "var(--color_text_muted)" }}>
+      {a_live_logs.length === 0 ? (
+        <div>No live events</div>
+      ) : (
+        a_live_logs.map((s_log, i_index) => (
+          <div key={`log_${i_index}`}>{s_log}</div>
+        ))
+      )}
+    </div>
+  )}
 
-            {s_active_workspace_panel === "workspace_tabs" && (
-              <RightSidebarTabs
-                ref={o_right_sidebar_tabs_ref}
-                o_selected_node={nodes.find((o_node) => o_node.id === s_selected_node_id)}
-                s_workflow_run_state={s_workflow_run_state}
-                s_workflow_status_text={s_workflow_status_text}
-                on_run_result={(o_run_result: TRunWorkflowResult) => {
-                  if (!o_run_result || typeof o_run_result !== "object") {
-                    set_workflow_run_state("error");
-                    set_workflow_status_text("Workflow error");
-                    set_is_starting_workflow(false);
-                    return;
-                  }
+  <div style={get_hidden_runner_host_style()}>
+  <RunnerPanel
+    ref={o_runner_panel_ref}
+    nodes={nodes}
+    edges={edges}
+    s_workflow_run_state={s_workflow_run_state}
+    s_workflow_status_text={s_workflow_status_text}
+    on_run_result={on_runner_result}
+  />
+</div>
 
-                  apply_run_results_to_state(
-                    extract_result_array(o_run_result),
-                    set_node_status_map,
-                    set_node_result_map,
-                  );
+  <div style={get_hidden_panel_style(s_active_workspace_panel === "workspace_tabs")}>
+    <RightSidebarTabs
+      ref={o_right_sidebar_tabs_ref}
+      o_selected_node={nodes.find((o_node) => o_node.id === s_selected_node_id)}
+      s_workflow_run_state={s_workflow_run_state}
+      s_workflow_status_text={s_workflow_status_text}
+      on_run_result={on_runner_result}
+    />
+  </div>
 
-                  const b_success = is_successful_run_result(o_run_result);
-
-                  if (b_success) {
-                    set_workflow_run_state("finished");
-                    set_workflow_status_text("Workflow finished");
-                    set_is_starting_workflow(false);
-                    return;
-                  }
-
-                  set_workflow_run_state("error");
-                  set_workflow_status_text(
-                    typeof o_run_result.error === "string" &&
-                      o_run_result.error.trim() !== ""
-                      ? `Workflow error: ${o_run_result.error}`
-                      : "Workflow error",
-                  );
-                  set_is_starting_workflow(false);
-                }}
-              />
-            )}
-
-            {s_active_workspace_panel === "settings" && (
-              <div>Einstellungen werden hier angezeigt.</div>
-            )}
-          </div>
+  {s_active_workspace_panel === "settings" && (
+    <div>Einstellungen werden hier angezeigt.</div>
+  )}
+</div>
         </div>
 
         <input

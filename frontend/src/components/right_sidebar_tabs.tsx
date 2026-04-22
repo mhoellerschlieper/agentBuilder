@@ -249,7 +249,7 @@ function get_tab_button_style(b_active: boolean): React.CSSProperties {
 
 function get_tab_icon_style(
   b_active: boolean,
-  s_label: string,
+  s_label: string
 ): React.CSSProperties {
   const b_is_runner = s_label === "Runner";
 
@@ -261,8 +261,8 @@ function get_tab_icon_style(
         ? "#2563eb"
         : "#4b5563"
       : b_active
-        ? "var(--color_accent_text, var(--color_text))"
-        : "var(--color_text)",
+      ? "var(--color_accent_text, var(--color_text))"
+      : "var(--color_text)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -370,7 +370,7 @@ function get_card_text_style(): React.CSSProperties {
 }
 
 function get_runner_badge_style(
-  s_workflow_run_state: TWorkflowRunState,
+  s_workflow_run_state: TWorkflowRunState
 ): React.CSSProperties {
   let s_background = "#6b7280";
 
@@ -459,16 +459,13 @@ export const RightSidebarTabs = forwardRef<
   TRightSidebarTabsHandle,
   TRightSidebarTabsProps
 >(function RightSidebarTabs(o_props, o_ref): JSX.Element {
-  const { s_workflow_run_state, s_workflow_status_text, on_run_result } = o_props;
+  const { s_workflow_run_state, s_workflow_status_text, on_run_result } =
+    o_props;
 
   const [s_active_tab, set_active_tab] = useState<TRightTab>("properties");
   const { a_tool_schemas } = use_tool_registry_store();
-  const {
-    global_variables,
-    nodes,
-    edges,
-    s_workflow_name,
-  } = use_workflow_store();
+  const { global_variables, nodes, edges, s_workflow_name } =
+    use_workflow_store();
 
   const o_runner_panel_ref = useRef<TRunnerPanelHandle | null>(null);
 
@@ -479,15 +476,18 @@ export const RightSidebarTabs = forwardRef<
         /* history:
          * - 2026-04-04: Runner Tab wird vor externem Run geoeffnet. author Marcus Schlieper
          * - 2026-04-11: Typisierung und sichere Null Pruefung verbessert. author Marcus Schlieper
+         * - 2026-04-22: Externer Run funktioniert ohne Umschalten auf den Runner Tab. author Marcus Schlieper
          */
-        set_active_tab("runner");
+        const o_runner_panel = o_runner_panel_ref.current;
 
-        if (o_runner_panel_ref.current) {
-          await o_runner_panel_ref.current.on_run();
+        if (!o_runner_panel || typeof o_runner_panel.on_run !== "function") {
+          throw new Error("Runner panel handle is not available.");
         }
+
+        await o_runner_panel.on_run();
       },
     }),
-    [],
+    []
   );
 
   const a_available_tools = useMemo((): TAvailableToolItem[] => {
@@ -501,14 +501,14 @@ export const RightSidebarTabs = forwardRef<
         s_subgroup: o_item.s_subgroup,
         s_icon: o_item.s_icon,
         s_source: "standard",
-      }),
+      })
     );
 
     const a_dynamic_items: TAvailableToolItem[] = a_tool_schemas
       .filter(
         (o_tool_schema) =>
           typeof o_tool_schema?.s_type === "string" &&
-          o_tool_schema.s_type.trim() !== "",
+          o_tool_schema.s_type.trim() !== ""
       )
       .map((o_tool_schema) => ({
         s_id: `dynamic_${o_tool_schema.s_type}`,
@@ -528,9 +528,9 @@ export const RightSidebarTabs = forwardRef<
           o_tool_schema.s_group.trim() !== ""
             ? o_tool_schema.s_group
             : typeof o_tool_schema.s_category === "string" &&
-                o_tool_schema.s_category.trim() !== ""
-              ? o_tool_schema.s_category
-              : "Other",
+              o_tool_schema.s_category.trim() !== ""
+            ? o_tool_schema.s_category
+            : "Other",
         s_subgroup:
           typeof o_tool_schema.s_subgroup === "string" &&
           o_tool_schema.s_subgroup.trim() !== ""
@@ -623,10 +623,17 @@ export const RightSidebarTabs = forwardRef<
 
   function render_tools_card(): JSX.Element {
     return (
-      <div style={{ ...get_card_style(), display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+      <div
+        style={{
+          ...get_card_style(),
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+        }}
+      >
         <div style={get_card_header_style()}>
           <h3 style={get_card_title_style()}>Tools</h3>
-          
         </div>
         <div style={{ flex: 1, minHeight: 0 }}>
           <ToolTreePanel />
