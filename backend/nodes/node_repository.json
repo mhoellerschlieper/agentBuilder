@@ -108,6 +108,27 @@
       "b_enabled": true
     },
     {
+      "s_node_type": "tool_scheduler",
+      "s_module_path": "nodes.tool_scheduler.node_impl",
+      "s_class_name": "ToolScheduler",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+    "s_node_type": "tool_list_mails",
+    "s_module_path": "nodes.tool_list_mails.node_impl",
+    "s_class_name": "ToolListMails",
+    "s_version": "1.0.0",
+    "b_enabled": true
+  },
+    {
+      "s_node_type": "tool_send_mail",
+      "s_module_path": "nodes.tool_send_mail.node_impl",
+      "s_class_name": "ToolSendMail",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
       "s_node_type": "tool_pdf_create",
       "s_module_path": "nodes.tool_pdf_create.node_impl",
       "s_class_name": "ToolPdfCreate",

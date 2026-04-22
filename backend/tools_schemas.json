@@ -1,857 +1,1100 @@
 {
-  "a_tools": [
-    {
-      "s_type": "tool_email_send",
-      "s_label": "Email Send",
-      "s_category": "Communication",
-      "s_group": "Communication",
-      "s_subgroup": "Email",
-      "s_icon": "mail",
-      "s_description": "Versendet eine Email ueber serverseitige Tool Logik.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
+    "a_tools": [
         {
-          "s_key": "s_to",
-          "s_label": "To",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
+            "s_type": "tool_scheduler",
+            "s_label": "Scheduler",
+            "s_category": "Automation",
+            "s_group": "Automation",
+            "s_subgroup": "Scheduling",
+            "s_icon": "calendar",
+            "s_description": "Plant zeitgesteuerte Aufgaben und prueft, ob ein Lauf faellig ist.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_mode",
+                    "s_label": "Mode",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "calculate_next_run",
+                    "a_options": [
+                        {
+                            "s_label": "Calculate Next Run",
+                            "s_value": "calculate_next_run"
+                        },
+                        {
+                            "s_label": "Check Due",
+                            "s_value": "check_due"
+                        }
+                    ]
+                },
+                {
+                    "s_key": "s_start_at",
+                    "s_label": "Start At",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_last_run_at",
+                    "s_label": "Last Run At",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_now",
+                    "s_label": "Now",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_interval_unit",
+                    "s_label": "Interval Unit",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "minutes",
+                    "a_options": [
+                        {
+                            "s_label": "Minutes",
+                            "s_value": "minutes"
+                        },
+                        {
+                            "s_label": "Hours",
+                            "s_value": "hours"
+                        },
+                        {
+                            "s_label": "Days",
+                            "s_value": "days"
+                        },
+                        {
+                            "s_label": "Weeks",
+                            "s_value": "weeks"
+                        }
+                    ]
+                },
+                {
+                    "s_key": "i_interval_value",
+                    "s_label": "Interval Value",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 60,
+                    "d_min": 1,
+                    "d_max": 525600
+                },
+                {
+                    "s_key": "i_max_occurrences",
+                    "s_label": "Max Occurrences",
+                    "s_field_type": "number",
+                    "b_required": false,
+                    "d_default": 0,
+                    "d_min": 0,
+                    "d_max": 100000
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "object",
+                        "string",
+                        "boolean"
+                    ]
+                }
+            ]
         },
         {
-          "s_key": "s_subject",
-          "s_label": "Subject",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
+            "s_type": "tool_web_search",
+            "s_label": "Web Search",
+            "s_category": "Research",
+            "s_group": "Research",
+            "s_subgroup": "Web",
+            "s_icon": "search",
+            "s_description": "Fuehrt eine serverseitige Web Suche aus.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_limit",
+                    "s_label": "Limit",
+                    "s_field_type": "number",
+                    "d_default": 5,
+                    "d_min": 1,
+                    "d_max": 50
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "array",
+                        "object",
+                        "string"
+                    ]
+                }
+            ]
         },
         {
-          "s_key": "s_body",
-          "s_label": "Body",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
+            "s_type": "tool_web_crawler",
+            "s_label": "Web Crawler",
+            "s_category": "Research",
+            "s_group": "Research",
+            "s_subgroup": "Web",
+            "s_icon": "search",
+            "s_description": "Fuehrt ein serverseitige Web Tiefensuche aus.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_max_depth",
+                    "s_label": "max Depth",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 1,
+                    "d_min": 1,
+                    "d_max": 20
+                },
+                {
+                    "s_key": "i_max_pages",
+                    "s_label": "max Pages",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 20,
+                    "d_min": 1,
+                    "d_max": 20
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 15000,
+                    "d_min": 1000,
+                    "d_max": 2000000
+                },
+                {
+                    "s_key": "b_same_host_only",
+                    "s_label": "same host only",
+                    "s_field_type": "checkbox",
+                    "b_required": true,
+                    "d_default": true
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "array",
+                        "object",
+                        "string"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_pdf_create",
+            "s_label": "PDF Create",
+            "s_category": "Documents",
+            "s_group": "Documents",
+            "s_subgroup": "PDF",
+            "s_icon": "file-text",
+            "s_description": "Erzeugt ein PDF aus Text oder HTML.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_title",
+                    "s_label": "Title",
+                    "s_field_type": "text",
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_content",
+                    "s_label": "Content",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_output_variable",
+                    "s_label": "Output Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "string",
+                        "object"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_pdf_extract_text",
+            "s_label": "PDF Extract Text",
+            "s_category": "Documents",
+            "s_group": "Documents",
+            "s_subgroup": "PDF",
+            "s_icon": "file-search",
+            "s_description": "Liest Text aus einem PDF.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_file_url",
+                    "s_label": "File Url",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_text_variable",
+                    "s_label": "Text Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "string"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_excel_read",
+            "s_label": "Excel Read",
+            "s_category": "Documents",
+            "s_group": "Documents",
+            "s_subgroup": "Spreadsheet",
+            "s_icon": "table",
+            "s_description": "Liest Daten aus einer Excel Datei.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_file_url",
+                    "s_label": "File Url",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_sheet_name",
+                    "s_label": "Sheet Name",
+                    "s_field_type": "text",
+                    "s_default": "Sheet1"
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "array",
+                        "object"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_excel_write",
+            "s_label": "Excel Write",
+            "s_category": "Documents",
+            "s_group": "Documents",
+            "s_subgroup": "Spreadsheet",
+            "s_icon": "sheet",
+            "s_description": "Schreibt Daten in eine Excel Datei.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_file_url",
+                    "s_label": "File Url",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_sheet_name",
+                    "s_label": "Sheet Name",
+                    "s_field_type": "text",
+                    "s_default": "Sheet1"
+                },
+                {
+                    "s_key": "s_data_variable",
+                    "s_label": "Data Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "array",
+                        "object"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_mysql_query",
+            "s_label": "MySQL Query",
+            "s_category": "Database",
+            "s_group": "Data",
+            "s_subgroup": "SQL",
+            "s_icon": "database",
+            "s_description": "Fuehrt eine MySQL Abfrage aus.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_name",
+                    "s_label": "Connection Name",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "array",
+                        "object"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_weather_current",
+            "s_label": "Weather Current",
+            "s_category": "Utility",
+            "s_group": "Information",
+            "s_subgroup": "Weather",
+            "s_icon": "cloud",
+            "s_description": "Liefert das aktuelle Wetter fuer einen Ort.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_location",
+                    "s_label": "Location",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "object",
+                        "string"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_news_search",
+            "s_label": "News Search",
+            "s_category": "Research",
+            "s_group": "Research",
+            "s_subgroup": "News",
+            "s_icon": "newspaper",
+            "s_description": "Sucht aktuelle Nachrichten zu einem Thema.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_limit",
+                    "s_label": "Limit",
+                    "s_field_type": "number",
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 100
+                }
+            ]
+        },
+        {
+            "s_type": "tool_translate_text",
+            "s_label": "Translate Text",
+            "s_category": "Language",
+            "s_group": "AI",
+            "s_subgroup": "Language",
+            "s_icon": "languages",
+            "s_description": "Uebersetzt Text in eine Zielsprache.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_text",
+                    "s_label": "Text",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_target_language",
+                    "s_label": "Target Language",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": "de"
+                }
+            ]
+        },
+        {
+            "s_type": "tool_text_summarize",
+            "s_label": "Text Summarize",
+            "s_category": "AI",
+            "s_group": "AI",
+            "s_subgroup": "Text",
+            "s_icon": "align-left",
+            "s_description": "Erstellt eine Zusammenfassung eines Textes.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_text",
+                    "s_label": "Text",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_max_sentences",
+                    "s_label": "Max Sentences",
+                    "s_field_type": "number",
+                    "d_default": 5,
+                    "d_min": 1,
+                    "d_max": 20
+                }
+            ]
+        },
+        {
+            "s_type": "tool_sentiment_analyze",
+            "s_label": "Sentiment Analyze",
+            "s_category": "AI",
+            "s_group": "AI",
+            "s_subgroup": "Text",
+            "s_icon": "smile",
+            "s_description": "Analysiert die Stimmung eines Textes.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_text",
+                    "s_label": "Text",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "string",
+                        "object"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_keyword_extract",
+            "s_label": "Keyword Extract",
+            "s_category": "AI",
+            "s_group": "AI",
+            "s_subgroup": "Text",
+            "s_icon": "key",
+            "s_description": "Extrahiert Schluesselbegriffe aus Texten.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_text",
+                    "s_label": "Text",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_limit",
+                    "s_label": "Limit",
+                    "s_field_type": "number",
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 50
+                }
+            ]
+        },
+        {
+            "s_type": "tool_log_write",
+            "s_label": "Log Write",
+            "s_category": "Monitoring",
+            "s_group": "Operations",
+            "s_subgroup": "Logging",
+            "s_icon": "logs",
+            "s_description": "Schreibt einen Log Eintrag.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_level",
+                    "s_label": "Level",
+                    "s_field_type": "select",
+                    "a_options": [
+                        {
+                            "s_label": "info",
+                            "s_value": "info"
+                        },
+                        {
+                            "s_label": "warn",
+                            "s_value": "warn"
+                        },
+                        {
+                            "s_label": "error",
+                            "s_value": "error"
+                        }
+                    ]
+                },
+                {
+                    "s_key": "s_message",
+                    "s_label": "Message",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": ""
+                }
+            ]
+        },
+        {
+            "s_type": "tool_send_mail",
+            "s_label": "Send Mail",
+            "s_category": "Communication",
+            "s_group": "Communication",
+            "s_subgroup": "Email",
+            "s_icon": "mail",
+            "s_description": "Versendet eine Email ueber serverseitige SMTP Tool Logik.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_smtp_host",
+                    "s_label": "SMTP Host",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_smtp_port",
+                    "s_label": "SMTP Port",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 587,
+                    "d_min": 1,
+                    "d_max": 65535
+                },
+                {
+                    "s_key": "s_smtp_username",
+                    "s_label": "SMTP Username",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_smtp_password",
+                    "s_label": "SMTP Password",
+                    "s_field_type": "password",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "b_use_tls",
+                    "s_label": "Use TLS",
+                    "s_field_type": "checkbox",
+                    "b_required": true,
+                    "d_default": true
+                },
+                {
+                    "s_key": "s_from_mail",
+                    "s_label": "From Mail",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": "mschlieper@ylook.de"
+                },
+                {
+                    "s_key": "s_from_name",
+                    "s_label": "From Name",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": "Marcus Schlieper"
+                },
+                {
+                    "s_key": "s_to_mail",
+                    "s_label": "To Mail",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_subject",
+                    "s_label": "Subject",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_body_text",
+                    "s_label": "Body Text",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_body_html",
+                    "s_label": "Body HTML",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "object",
+                        "string"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_email_forward",
+            "s_label": "Email Forward",
+            "s_category": "Communication",
+            "s_group": "Communication",
+            "s_subgroup": "Email",
+            "s_icon": "forward",
+            "s_description": "Leitet eine Email weiter.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_message_id",
+                    "s_label": "Message Id",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_to",
+                    "s_label": "To",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_comment",
+                    "s_label": "Comment",
+                    "s_field_type": "textarea",
+                    "s_default": ""
+                }
+            ]
+        },
+        {
+            "s_type": "tool_email_read",
+            "s_label": "Email Read",
+            "s_category": "Communication",
+            "s_group": "Communication",
+            "s_subgroup": "Email",
+            "s_icon": "mail-open",
+            "s_description": "Liest eine Email anhand ihrer ID.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_message_id",
+                    "s_label": "Message Id",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "object",
+                        "string"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_list_mails",
+            "s_label": "List Mails",
+            "s_category": "Communication",
+            "s_group": "Communication",
+            "s_subgroup": "Email",
+            "s_icon": "mail",
+            "s_description": "Listet E Mails ueber serverseitige IMAP Tool Logik mit Filtern und optionalen Flag Aktionen.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_imap_host",
+                    "s_label": "IMAP Host",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_imap_port",
+                    "s_label": "IMAP Port",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 993,
+                    "d_min": 1,
+                    "d_max": 65535
+                },
+                {
+                    "s_key": "s_username",
+                    "s_label": "Username",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": "mschlieper@ylook.de"
+                },
+                {
+                    "s_key": "s_password",
+                    "s_label": "Password",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "b_use_ssl",
+                    "s_label": "Use SSL",
+                    "s_field_type": "checkbox",
+                    "b_required": true,
+                    "d_default": true
+                },
+                {
+                    "s_key": "s_folder",
+                    "s_label": "Folder",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": "INBOX"
+                },
+                {
+                    "s_key": "i_limit",
+                    "s_label": "Limit",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 20,
+                    "d_min": 1,
+                    "d_max": 500
+                },
+                {
+                    "s_key": "s_since",
+                    "s_label": "Since",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_seen_filter",
+                    "s_label": "Seen Filter",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "all",
+                    "a_options": [
+                        {
+                            "s_label": "All",
+                            "s_value": "all"
+                        },
+                        {
+                            "s_label": "Seen",
+                            "s_value": "seen"
+                        },
+                        {
+                            "s_label": "Unseen",
+                            "s_value": "unseen"
+                        }
+                    ]
+                },
+                {
+                    "s_key": "s_from_filter",
+                    "s_label": "From Filter",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_subject_filter",
+                    "s_label": "Subject Filter",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_after_action",
+                    "s_label": "After Action",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "none",
+                    "a_options": [
+                        {
+                            "s_label": "None",
+                            "s_value": "none"
+                        },
+                        {
+                            "s_label": "Set Seen",
+                            "s_value": "seen"
+                        },
+                        {
+                            "s_label": "Set Unseen",
+                            "s_value": "unseen"
+                        },
+                        {
+                            "s_label": "Set Flag",
+                            "s_value": "flag"
+                        },
+                        {
+                            "s_label": "Remove Flag",
+                            "s_value": "unflag"
+                        }
+                    ]
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "array",
+                        "object",
+                        "string"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "tool_email_delete",
+            "s_label": "Email Delete",
+            "s_category": "Communication",
+            "s_group": "Communication",
+            "s_subgroup": "Email",
+            "s_icon": "trash",
+            "s_description": "Loescht eine Email.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_message_id",
+                    "s_label": "Message Id",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "b_permanent",
+                    "s_label": "Permanent",
+                    "s_field_type": "checkbox"
+                }
+            ]
+        },
+        {
+            "s_type": "variable_tool",
+            "s_label": "Variable Tool",
+            "s_category": "Utility",
+            "s_group": "Data",
+            "s_subgroup": "Variable",
+            "s_icon": "variable",
+            "s_description": "Erzeugt nur eine Variable als Output.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_variable_name",
+                    "s_label": "Variable Name",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_variable_type",
+                    "s_label": "Variable Type",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "string",
+                    "a_options": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "object",
+                        "array"
+                    ]
+                },
+                {
+                    "s_key": "s_variable_value",
+                    "s_label": "Variable Value",
+                    "s_field_type": "textarea",
+                    "s_default": ""
+                }
+            ]
+        },
+        {
+            "s_type": "show_tool",
+            "s_label": "Show Tool",
+            "s_category": "Utility",
+            "s_group": "Output",
+            "s_subgroup": "Display",
+            "s_icon": "eye",
+            "s_description": "Gibt einen Input aus.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_title",
+                    "s_label": "Title",
+                    "s_field_type": "text",
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_mode",
+                    "s_label": "Mode",
+                    "s_field_type": "select",
+                    "s_default": "text",
+                    "a_options": [
+                        "text",
+                        "json",
+                        "html"
+                    ]
+                }
+            ]
         }
-      ]
-    },
-    {
-      "s_type": "tool_web_search",
-      "s_label": "Web Search",
-      "s_category": "Research",
-      "s_group": "Research",
-      "s_subgroup": "Web",
-      "s_icon": "search",
-      "s_description": "Fuehrt eine serverseitige Web Suche aus.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_query",
-          "s_label": "Query",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "i_limit",
-          "s_label": "Limit",
-          "s_field_type": "number",
-          "d_default": 5,
-          "d_min": 1,
-          "d_max": 50
-        },
-        {
-          "s_key": "s_result_variable",
-          "s_label": "Result Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "array",
-            "object",
-            "string"
-          ]
-        }
-      ]
-    },
-     {
-      "s_type": "tool_web_crawler",
-      "s_label": "Web Crawler",
-      "s_category": "Research",
-      "s_group": "Research",
-      "s_subgroup": "Web",
-      "s_icon": "search",
-      "s_description": "Fuehrt ein serverseitige Web Tiefensuche aus.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_query",
-          "s_label": "Query",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "i_max_depth",
-          "s_label": "max Depth",
-          "s_field_type": "number",
-          "b_required": true,
-          "d_default": 1,
-          "d_min": 1,
-          "d_max": 20
-        },
-        {
-          "s_key": "i_max_pages",
-          "s_label": "max Pages",
-          "s_field_type": "number",
-          "b_required": true,
-          "d_default": 20,
-          "d_min": 1,
-          "d_max": 20
-        },
-        {
-          "s_key": "i_timeout",
-          "s_label": "Timeout",
-          "s_field_type": "number",
-          "b_required": true,
-          "d_default": 15000,
-          "d_min": 1000,
-          "d_max": 2000000
-        },
-        {
-          "s_key": "b_same_host_only",
-          "s_label": "same host only",
-          "s_field_type": "checkbox",
-          "b_required": true,
-          "d_default": true
-        },
-        {
-          "s_key": "s_result_variable",
-          "s_label": "Result Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "array",
-            "object",
-            "string"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_pdf_create",
-      "s_label": "PDF Create",
-      "s_category": "Documents",
-      "s_group": "Documents",
-      "s_subgroup": "PDF",
-      "s_icon": "file-text",
-      "s_description": "Erzeugt ein PDF aus Text oder HTML.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_title",
-          "s_label": "Title",
-          "s_field_type": "text",
-          "s_default": ""
-        },
-        {
-          "s_key": "s_content",
-          "s_label": "Content",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_output_variable",
-          "s_label": "Output Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "string",
-            "object"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_pdf_extract_text",
-      "s_label": "PDF Extract Text",
-      "s_category": "Documents",
-      "s_group": "Documents",
-      "s_subgroup": "PDF",
-      "s_icon": "file-search",
-      "s_description": "Liest Text aus einem PDF.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_file_url",
-          "s_label": "File Url",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_text_variable",
-          "s_label": "Text Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "string"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_excel_read",
-      "s_label": "Excel Read",
-      "s_category": "Documents",
-      "s_group": "Documents",
-      "s_subgroup": "Spreadsheet",
-      "s_icon": "table",
-      "s_description": "Liest Daten aus einer Excel Datei.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_file_url",
-          "s_label": "File Url",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_sheet_name",
-          "s_label": "Sheet Name",
-          "s_field_type": "text",
-          "s_default": "Sheet1"
-        },
-        {
-          "s_key": "s_result_variable",
-          "s_label": "Result Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "array",
-            "object"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_excel_write",
-      "s_label": "Excel Write",
-      "s_category": "Documents",
-      "s_group": "Documents",
-      "s_subgroup": "Spreadsheet",
-      "s_icon": "sheet",
-      "s_description": "Schreibt Daten in eine Excel Datei.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_file_url",
-          "s_label": "File Url",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_sheet_name",
-          "s_label": "Sheet Name",
-          "s_field_type": "text",
-          "s_default": "Sheet1"
-        },
-        {
-          "s_key": "s_data_variable",
-          "s_label": "Data Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "array",
-            "object"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_mysql_query",
-      "s_label": "MySQL Query",
-      "s_category": "Database",
-      "s_group": "Data",
-      "s_subgroup": "SQL",
-      "s_icon": "database",
-      "s_description": "Fuehrt eine MySQL Abfrage aus.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_connection_name",
-          "s_label": "Connection Name",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_query",
-          "s_label": "Query",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_result_variable",
-          "s_label": "Result Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "array",
-            "object"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_weather_current",
-      "s_label": "Weather Current",
-      "s_category": "Utility",
-      "s_group": "Information",
-      "s_subgroup": "Weather",
-      "s_icon": "cloud",
-      "s_description": "Liefert das aktuelle Wetter fuer einen Ort.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_location",
-          "s_label": "Location",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_result_variable",
-          "s_label": "Result Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "object",
-            "string"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_news_search",
-      "s_label": "News Search",
-      "s_category": "Research",
-      "s_group": "Research",
-      "s_subgroup": "News",
-      "s_icon": "newspaper",
-      "s_description": "Sucht aktuelle Nachrichten zu einem Thema.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_query",
-          "s_label": "Query",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "i_limit",
-          "s_label": "Limit",
-          "s_field_type": "number",
-          "d_default": 10,
-          "d_min": 1,
-          "d_max": 100
-        }
-      ]
-    },
-    {
-      "s_type": "tool_translate_text",
-      "s_label": "Translate Text",
-      "s_category": "Language",
-      "s_group": "AI",
-      "s_subgroup": "Language",
-      "s_icon": "languages",
-      "s_description": "Uebersetzt Text in eine Zielsprache.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_text",
-          "s_label": "Text",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_target_language",
-          "s_label": "Target Language",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": "de"
-        }
-      ]
-    },
-    {
-      "s_type": "tool_text_summarize",
-      "s_label": "Text Summarize",
-      "s_category": "AI",
-      "s_group": "AI",
-      "s_subgroup": "Text",
-      "s_icon": "align-left",
-      "s_description": "Erstellt eine Zusammenfassung eines Textes.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_text",
-          "s_label": "Text",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "i_max_sentences",
-          "s_label": "Max Sentences",
-          "s_field_type": "number",
-          "d_default": 5,
-          "d_min": 1,
-          "d_max": 20
-        }
-      ]
-    },
-    {
-      "s_type": "tool_sentiment_analyze",
-      "s_label": "Sentiment Analyze",
-      "s_category": "AI",
-      "s_group": "AI",
-      "s_subgroup": "Text",
-      "s_icon": "smile",
-      "s_description": "Analysiert die Stimmung eines Textes.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_text",
-          "s_label": "Text",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_result_variable",
-          "s_label": "Result Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "string",
-            "object"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_keyword_extract",
-      "s_label": "Keyword Extract",
-      "s_category": "AI",
-      "s_group": "AI",
-      "s_subgroup": "Text",
-      "s_icon": "key",
-      "s_description": "Extrahiert Schluesselbegriffe aus Texten.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_text",
-          "s_label": "Text",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "i_limit",
-          "s_label": "Limit",
-          "s_field_type": "number",
-          "d_default": 10,
-          "d_min": 1,
-          "d_max": 50
-        }
-      ]
-    },
-    {
-      "s_type": "tool_log_write",
-      "s_label": "Log Write",
-      "s_category": "Monitoring",
-      "s_group": "Operations",
-      "s_subgroup": "Logging",
-      "s_icon": "logs",
-      "s_description": "Schreibt einen Log Eintrag.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_level",
-          "s_label": "Level",
-          "s_field_type": "select",
-          "a_options": [
-            {
-              "s_label": "info",
-              "s_value": "info"
-            },
-            {
-              "s_label": "warn",
-              "s_value": "warn"
-            },
-            {
-              "s_label": "error",
-              "s_value": "error"
-            }
-          ]
-        },
-        {
-          "s_key": "s_message",
-          "s_label": "Message",
-          "s_field_type": "textarea",
-          "b_required": true,
-          "s_default": ""
-        }
-      ]
-    },
-    {
-      "s_type": "tool_email_forward",
-      "s_label": "Email Forward",
-      "s_category": "Communication",
-      "s_group": "Communication",
-      "s_subgroup": "Email",
-      "s_icon": "forward",
-      "s_description": "Leitet eine Email weiter.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_message_id",
-          "s_label": "Message Id",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_to",
-          "s_label": "To",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_comment",
-          "s_label": "Comment",
-          "s_field_type": "textarea",
-          "s_default": ""
-        }
-      ]
-    },
-    {
-      "s_type": "tool_email_read",
-      "s_label": "Email Read",
-      "s_category": "Communication",
-      "s_group": "Communication",
-      "s_subgroup": "Email",
-      "s_icon": "mail-open",
-      "s_description": "Liest eine Email anhand ihrer ID.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_message_id",
-          "s_label": "Message Id",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_result_variable",
-          "s_label": "Result Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "object",
-            "string"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_email_list",
-      "s_label": "Email List",
-      "s_category": "Communication",
-      "s_group": "Communication",
-      "s_subgroup": "Email",
-      "s_icon": "inbox",
-      "s_description": "Listet Emails aus einem Postfach.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input",
-        "trigger",
-        "auth"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_folder",
-          "s_label": "Folder",
-          "s_field_type": "text",
-          "s_default": "Inbox"
-        },
-        {
-          "s_key": "s_filter",
-          "s_label": "Filter",
-          "s_field_type": "select",
-          "s_default": "all",
-          "a_options": [
-            "all",
-            "seen",
-            "unseen",
-            "flagged",
-            "unflagged",
-            "answered",
-            "unanswered",
-            "draft",
-            "deleted",
-            "important"
-          ]
-        },
-        {
-          "s_key": "s_since",
-          "s_label": "Since",
-          "s_field_type": "datetime"
-        },
-        {
-          "s_key": "s_protocol",
-          "s_label": "Protocol",
-          "s_field_type": "select",
-          "s_default": "imap",
-          "a_options": [
-            "imap",
-            "pop3"
-          ]
-        },
-        {
-          "s_key": "s_email",
-          "s_label": "Email",
-          "s_field_type": "text"
-        },
-        {
-          "s_key": "s_password",
-          "s_label": "Password or OAuth Token",
-          "s_field_type": "password"
-        },
-        {
-          "s_key": "i_limit",
-          "s_label": "Limit",
-          "s_field_type": "number",
-          "d_default": 7,
-          "d_min": 1,
-          "d_max": 200
-        },
-        {
-          "s_key": "s_result_variable",
-          "s_label": "Result Variable",
-          "s_field_type": "variable_select",
-          "a_allowed_types": [
-            "array"
-          ]
-        }
-      ]
-    },
-    {
-      "s_type": "tool_email_delete",
-      "s_label": "Email Delete",
-      "s_category": "Communication",
-      "s_group": "Communication",
-      "s_subgroup": "Email",
-      "s_icon": "trash",
-      "s_description": "Loescht eine Email.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_message_id",
-          "s_label": "Message Id",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "b_permanent",
-          "s_label": "Permanent",
-          "s_field_type": "checkbox"
-        }
-      ]
-    },
-    {
-      "s_type": "variable_tool",
-      "s_label": "Variable Tool",
-      "s_category": "Utility",
-      "s_group": "Data",
-      "s_subgroup": "Variable",
-      "s_icon": "variable",
-      "s_description": "Erzeugt nur eine Variable als Output.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_variable_name",
-          "s_label": "Variable Name",
-          "s_field_type": "text",
-          "b_required": true,
-          "s_default": ""
-        },
-        {
-          "s_key": "s_variable_type",
-          "s_label": "Variable Type",
-          "s_field_type": "select",
-          "b_required": true,
-          "s_default": "string",
-          "a_options": [
-            "string",
-            "number",
-            "boolean",
-            "object",
-            "array"
-          ]
-        },
-        {
-          "s_key": "s_variable_value",
-          "s_label": "Variable Value",
-          "s_field_type": "textarea",
-          "s_default": ""
-        }
-      ]
-    },
-    {
-      "s_type": "show_tool",
-      "s_label": "Show Tool",
-      "s_category": "Utility",
-      "s_group": "Output",
-      "s_subgroup": "Display",
-      "s_icon": "eye",
-      "s_description": "Gibt einen Input aus.",
-      "s_class_name": "node_tool",
-      "a_input_handles": [
-        "input"
-      ],
-      "a_output_handles": [
-        "output"
-      ],
-      "a_fields": [
-        {
-          "s_key": "s_title",
-          "s_label": "Title",
-          "s_field_type": "text",
-          "s_default": ""
-        },
-        {
-          "s_key": "s_mode",
-          "s_label": "Mode",
-          "s_field_type": "select",
-          "s_default": "text",
-          "a_options": [
-            "text",
-            "json",
-            "html"
-          ]
-        }
-      ]
-    }
-  ]
+    ]
 }

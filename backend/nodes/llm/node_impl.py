@@ -110,7 +110,7 @@ class LlmNode(BaseNode):
             )
 
         o_main_output = {
-            "response_text": s_response_text,
+            "results": s_response_text,
             "model": s_model,
             "provider": s_provider,
             "temperature": d_temperature,

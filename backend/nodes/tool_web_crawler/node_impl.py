@@ -407,6 +407,7 @@ class ToolWebCrawler(BaseNode):
 
                 try:
                     s_body_text = self.page.inner_text("body")
+                    s_body_text = html2text(s_body_text)
                 except Exception:
                     s_body_text = self._html_to_text(s_html)
 
@@ -414,6 +415,7 @@ class ToolWebCrawler(BaseNode):
                     s_url=s_final_url,
                     s_html=s_html,
                 )
+                
 
                 try:
                     o_context.close()
