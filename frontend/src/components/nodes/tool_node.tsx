@@ -176,6 +176,7 @@ import {
   get_meta_style,
   get_input_style as get_shared_input_style,
 } from "./node_runtime_helpers";
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
 
 function get_string_value(value: unknown): string {
   if (typeof value === "string") {
@@ -818,7 +819,7 @@ export function ToolNode({ id, data, type, selected }: NodeProps): JSX.Element {
               <p style={get_type_style()}>{get_safe_text(s_tool_type, "tool")}</p>
             </div>
           </div>
-
+          <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} i_runtime_ms={data?.i_runtime_ms}  />
           <NodeDeleteButton node_id={id} />
         </div>
 

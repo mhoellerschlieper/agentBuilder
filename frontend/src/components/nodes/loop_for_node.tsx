@@ -35,6 +35,8 @@ import {
   RenderRuntimeResult,
 } from "./node_runtime_helpers";
 
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
+
 export function LoopForNode({ id, data }: NodeProps): JSX.Element {
   const { getNodes, getEdges } = useReactFlow();
   const a_nodes = getNodes();
@@ -114,6 +116,7 @@ export function LoopForNode({ id, data }: NodeProps): JSX.Element {
           s_title="Loop For"
           s_subtitle={s_preview}
         />
+        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
         <NodeDeleteButton node_id={id} />
       </div>
 

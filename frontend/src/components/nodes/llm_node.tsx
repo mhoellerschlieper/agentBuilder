@@ -37,6 +37,7 @@ import {
   RenderNamedHandles,
   RenderRuntimeResult,
 } from "./node_runtime_helpers";
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
 
 const a_openai_model_options: string[] = [
   "gpt-5.4",
@@ -144,6 +145,7 @@ export function LlmNode({ id, data }: NodeProps): JSX.Element {
         )}
       >
         <NodeHeaderTitle s_kind="llm" s_title="LLM" s_subtitle={s_preview} />
+        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
         <NodeDeleteButton node_id={id} />
       </div>
 

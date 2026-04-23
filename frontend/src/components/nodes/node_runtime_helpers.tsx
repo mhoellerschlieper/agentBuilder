@@ -19,6 +19,8 @@ import {
   get_output_handle_style,
 } from "./node_handle_styles";
 
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
+
 type TRecord = Record<string, unknown>;
 
 export type THandleDefinition = {

@@ -34,6 +34,8 @@ import {
   RenderRuntimeResult,
 } from "./node_runtime_helpers";
 
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
+
 type TSwitchCaseItem = {
   s_id?: string;
   s_value?: string;
@@ -244,6 +246,7 @@ export function SwitchNode({ id, data }: NodeProps): JSX.Element {
           s_title="Switch"
           s_subtitle={"if left - " + String(a_cases.length) + " cases"}
         />
+        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
         <NodeDeleteButton node_id={id} />
       </div>
 

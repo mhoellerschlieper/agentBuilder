@@ -36,6 +36,8 @@ import {
   RenderRuntimeResult,
 } from "./node_runtime_helpers";
 
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
+
 type TStartOutputType = "string" | "int" | "float" | "array" | "object";
 
 type TStartOutputItem = {
@@ -371,6 +373,7 @@ export function StartNode({ id, data }: NodeProps): JSX.Element {
           s_title="Start"
           s_subtitle={"Outputs " + String(a_outputs.length)}
         />
+        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
         <NodeDeleteButton node_id={id} />
       </div>
 

@@ -25,7 +25,7 @@ import {
   RenderNamedHandles,
   RenderRuntimeResult,
 } from "./node_runtime_helpers";
-
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
 
 type TClassifierClassItem = {
   s_id?: string;
@@ -242,6 +242,7 @@ export function ClassifierNode({ id, data }: NodeProps): JSX.Element {
           s_title={typeof o_data.s_label === "string" && o_data.s_label.trim() !== "" ? o_data.s_label : "Classifier"}
           s_subtitle={s_model_name.trim() !== "" ? s_model_name : "classify_text"}
         />
+        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
         <NodeDeleteButton node_id={id} />
       </div>
 

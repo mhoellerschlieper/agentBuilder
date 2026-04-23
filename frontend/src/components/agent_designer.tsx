@@ -89,7 +89,11 @@ import {
 } from "../services/workflow_command_executor";
 import { build_auto_layout } from "../services/workflow_layout";
 import { get_socket } from "../services/socket";
-import { RunnerPanel, type TRunnerPanelHandle, type TRunWorkflowResult } from "./runner_panel";
+import {
+  RunnerPanel,
+  type TRunnerPanelHandle,
+  type TRunWorkflowResult,
+} from "./runner_panel";
 
 type TRecord = Record<string, unknown>;
 
@@ -156,7 +160,11 @@ type TWorkflowRunState =
   | "error"
   | "stopped";
 
-type TNodeExecutionStatus = "idle" | "running" | "success" | "error";
+type TNodeExecutionStatus =
+  | "idle"
+  | "running"
+  | "finished_ok"
+  | "finished_error";
 
 type TWorkflowStatusPayload = {
   status?: string;
@@ -185,7 +193,6 @@ type TRunNodeResult = {
   result?: unknown;
   error?: string;
 };
-
 
 type TWorkflowStoreShape = {
   s_workflow_name: string;
@@ -594,20 +601,23 @@ function get_node_execution_style(
       background: "rgba(34, 197, 94, 0.06)",
     };
   }
-  if (s_node_status === "success") {
+
+  if (s_node_status === "finished_ok") {
     return {
       border: "2px solid #16a34a",
       boxShadow: "0 0 0 3px rgba(22, 163, 74, 0.12)",
       background: "rgba(22, 163, 74, 0.05)",
     };
   }
-  if (s_node_status === "error") {
+
+  if (s_node_status === "finished_error") {
     return {
       border: "2px solid #dc2626",
       boxShadow: "0 0 0 3px rgba(220, 38, 38, 0.12)",
       background: "rgba(220, 38, 38, 0.05)",
     };
   }
+
   return undefined;
 }
 
@@ -853,9 +863,9 @@ function apply_run_results_to_state(
     if (s_status === "running") {
       o_next_status_map[s_node_id] = "running";
     } else if (s_status === "success") {
-      o_next_status_map[s_node_id] = "success";
+      o_next_status_map[s_node_id] = "finished_ok";
     } else if (s_status === "error") {
-      o_next_status_map[s_node_id] = "error";
+      o_next_status_map[s_node_id] = "finished_error";
     }
 
     if (typeof o_result.result !== "undefined") {
@@ -1076,36 +1086,54 @@ function AgentDesignerContent(): JSX.Element {
   }, [a_chat_messages]);
 
   const a_nodes_with_runtime_status = useMemo(() => {
-    return nodes.map((o_node) => {
-      const s_node_status = o_node_status_map[o_node.id] || "idle";
-      const o_node_result = o_node_result_map[o_node.id] ?? null;
-      const o_existing_style =
-        o_node.style && typeof o_node.style === "object" ? o_node.style : {};
-      const o_runtime_style = get_node_execution_style(s_node_status);
-      const { o_outputs, o_inputs } =
-        get_runtime_maps_from_result(o_node_result);
+  return nodes.map((o_node) => {
+    const s_node_status = o_node_status_map[o_node.id] || "idle";
+    const o_node_result = o_node_result_map[o_node.id] ?? null;
 
-      return {
-        ...o_node,
-        style: {
-          ...o_existing_style,
-          ...(o_runtime_style || {}),
-        },
-        data: {
-          ...(o_node.data || {}),
-          s_runtime_status: s_node_status,
-          result: o_node_result,
-          runtime_result: o_node_result,
-          o_result: o_node_result,
-          output_values: o_outputs,
-          input_values: o_inputs,
-          outputs: o_outputs,
-          inputs: o_inputs,
-          b_show_success_check: s_node_status === "success",
-        },
-      };
-    });
-  }, [nodes, o_node_status_map, o_node_result_map]);
+    /*
+    Historie:
+    - 2026-04-23: Runtime Zeit wird jetzt sicher aus dem Result Objekt gelesen.
+    - 2026-04-23: Fallback auf 0, falls keine gueltige Runtime vorhanden ist.
+    */
+    const i_runtime_ms =
+      o_node_result &&
+      typeof o_node_result === "object" &&
+      typeof o_node_result.i_runtime_ms === "number"
+        ? o_node_result.i_runtime_ms
+        : 0;
+
+    const o_existing_style =
+      o_node.style && typeof o_node.style === "object" ? o_node.style : {};
+
+    const o_runtime_style = get_node_execution_style(
+      s_node_status as TNodeExecutionStatus
+    );
+
+    const { o_outputs, o_inputs } =
+      get_runtime_maps_from_result(o_node_result);
+
+    return {
+      ...o_node,
+      style: {
+        ...o_existing_style,
+        ...(o_runtime_style || {}),
+      },
+      data: {
+        ...(o_node.data || {}),
+        s_runtime_status: s_node_status,
+        i_runtime_ms: i_runtime_ms,
+        result: o_node_result,
+        runtime_result: o_node_result,
+        o_result: o_node_result,
+        output_values: o_outputs,
+        input_values: o_inputs,
+        outputs: o_outputs,
+        inputs: o_inputs,
+        b_show_success_check: s_node_status === "finished_ok",
+      },
+    };
+  });
+}, [nodes, o_node_status_map, o_node_result_map]);
 
   useEffect(() => {
     const s_safe_name = get_safe_workflow_name(s_workflow_name);
@@ -1155,127 +1183,152 @@ function AgentDesignerContent(): JSX.Element {
     set_is_renaming_workflow(false);
   }
 
-  useEffect(() => {
-    function on_connect_socket(): void {
-      set_live_logs((a_prev) => [...a_prev, "socket_connected"]);
+  /* file: frontend/src/components/agent_designer.tsx
+description: Agent designer with file actions, workflow naming, save, save as, and rename support.
+history:
+- 2026-04-23: Socket Fehler Logging fuer connect_error und reconnect transparenter gemacht. author Marcus Schlieper
+author Marcus Schlieper
+*/
+
+useEffect(() => {
+  function on_connect_socket(): void {
+    set_live_logs((a_prev) => [...a_prev, "socket_connected"]);
+  }
+
+  function on_connect_error(o_error: unknown): void {
+    const s_error =
+      o_error instanceof Error
+        ? o_error.message
+        : typeof o_error === "string"
+        ? o_error
+        : JSON.stringify(o_error);
+    set_live_logs((a_prev) => [...a_prev, `socket_connect_error: ${s_error}`]);
+  }
+
+  function on_disconnect(s_reason: string): void {
+    set_live_logs((a_prev) => [...a_prev, `socket_disconnected: ${s_reason}`]);
+  }
+
+  function on_system_status(o_payload: unknown): void {
+    set_live_logs((a_prev) => [
+      ...a_prev,
+      `system_status: ${JSON.stringify(o_payload)}`,
+    ]);
+  }
+
+  function on_workflow_status(o_payload: unknown): void {
+    set_live_logs((a_prev) => [
+      ...a_prev,
+      `workflow_status: ${JSON.stringify(o_payload)}`,
+    ]);
+
+    const o_safe_payload: TWorkflowStatusPayload =
+      o_payload && typeof o_payload === "object"
+        ? (o_payload as TWorkflowStatusPayload)
+        : {};
+
+    const s_status = String(o_safe_payload.status || "")
+      .trim()
+      .toLowerCase();
+
+    if (s_status === "started") {
+      set_workflow_run_state("running");
+      set_workflow_status_text("Workflow running");
+      return;
     }
 
-    function on_system_status(o_payload: unknown): void {
-      set_live_logs((a_prev) => [
-        ...a_prev,
-        `system_status: ${JSON.stringify(o_payload)}`,
-      ]);
+    if (s_status === "running") {
+      set_workflow_run_state("running");
+      set_workflow_status_text("Workflow running");
+      return;
     }
 
-    function on_workflow_status(o_payload: unknown): void {
-      set_live_logs((a_prev) => [
-        ...a_prev,
-        `workflow_status: ${JSON.stringify(o_payload)}`,
-      ]);
+    apply_run_results_to_state(
+      extract_result_array(o_safe_payload),
+      set_node_status_map,
+      set_node_result_map
+    );
 
-      const o_safe_payload: TWorkflowStatusPayload =
-        o_payload && typeof o_payload === "object"
-          ? (o_payload as TWorkflowStatusPayload)
-          : {};
+    if (is_finished_workflow_payload(o_safe_payload)) {
+      set_workflow_run_state("finished");
+      set_workflow_status_text("Workflow finished");
+      set_is_starting_workflow(false);
+      return;
+    }
 
-      const s_status = String(o_safe_payload.status || "")
-        .trim()
-        .toLowerCase();
-
-      if (s_status === "started") {
-        set_workflow_run_state("running");
-        set_workflow_status_text("Workflow running");
-        return;
-      }
-
-      if (s_status === "running") {
-        set_workflow_run_state("running");
-        set_workflow_status_text("Workflow running");
-        return;
-      }
-
-      apply_run_results_to_state(
-        extract_result_array(o_safe_payload),
-        set_node_status_map,
-        set_node_result_map
+    if (s_status === "error" || s_status === "failed") {
+      set_workflow_run_state("error");
+      set_workflow_status_text(
+        o_safe_payload.error
+          ? `Workflow error: ${o_safe_payload.error}`
+          : "Workflow error"
       );
-
-      if (is_finished_workflow_payload(o_safe_payload)) {
-        set_workflow_run_state("finished");
-        set_workflow_status_text("Workflow finished");
-        set_is_starting_workflow(false);
-        return;
-      }
-
-      if (s_status === "error" || s_status === "failed") {
-        set_workflow_run_state("error");
-        set_workflow_status_text(
-          o_safe_payload.error
-            ? `Workflow error: ${o_safe_payload.error}`
-            : "Workflow error"
-        );
-        set_is_starting_workflow(false);
-        return;
-      }
-
-      if (s_status === "stopped" || s_status === "cancelled") {
-        set_workflow_run_state("stopped");
-        set_workflow_status_text("Workflow stopped");
-        set_is_starting_workflow(false);
-      }
+      set_is_starting_workflow(false);
+      return;
     }
 
-    function on_node_status(o_payload: unknown): void {
-      set_live_logs((a_prev) => [
-        ...a_prev,
-        `node_status: ${JSON.stringify(o_payload)}`,
-      ]);
+    if (s_status === "stopped" || s_status === "cancelled") {
+      set_workflow_run_state("stopped");
+      set_workflow_status_text("Workflow stopped");
+      set_is_starting_workflow(false);
+    }
+  }
 
-      const o_safe_payload: TNodeStatusPayload =
-        o_payload && typeof o_payload === "object"
-          ? (o_payload as TNodeStatusPayload)
-          : {};
+  function on_node_status(o_payload: unknown): void {
+    set_live_logs((a_prev) => [
+      ...a_prev,
+      `node_status: ${JSON.stringify(o_payload)}`,
+    ]);
 
-      const s_node_id = String(o_safe_payload.node_id || "").trim();
-      const s_status = String(o_safe_payload.status || "").trim();
+    const o_safe_payload: TNodeStatusPayload =
+      o_payload && typeof o_payload === "object"
+        ? (o_payload as TNodeStatusPayload)
+        : {};
 
-      if (s_node_id === "") {
-        return;
-      }
+    const s_node_id = String(o_safe_payload.node_id || "").trim();
+    const s_status = String(o_safe_payload.status || "").trim();
 
-      if (
-        s_status !== "running" &&
-        s_status !== "success" &&
-        s_status !== "error"
-      ) {
-        return;
-      }
+    if (s_node_id === "") {
+      return;
+    }
 
-      set_node_status_map((o_prev) => ({
+    if (
+      s_status !== "running" &&
+      s_status !== "finished_ok" &&
+      s_status !== "finished_error"
+    ) {
+      return;
+    }
+
+    set_node_status_map((o_prev) => ({
+      ...o_prev,
+      [s_node_id]: s_status as TNodeExecutionStatus,
+    }));
+
+    if (typeof o_safe_payload.result !== "undefined") {
+      set_node_result_map((o_prev) => ({
         ...o_prev,
-        [s_node_id]: s_status as TNodeExecutionStatus,
+        [s_node_id]: o_safe_payload.result,
       }));
-
-      if (typeof o_safe_payload.result !== "undefined") {
-        set_node_result_map((o_prev) => ({
-          ...o_prev,
-          [s_node_id]: o_safe_payload.result,
-        }));
-      }
     }
+  }
 
-    o_socket.on("connect", on_connect_socket);
-    o_socket.on("system_status", on_system_status);
-    o_socket.on("workflow_status", on_workflow_status);
-    o_socket.on("node_status", on_node_status);
+  o_socket.on("connect", on_connect_socket);
+  o_socket.on("connect_error", on_connect_error);
+  o_socket.on("disconnect", on_disconnect);
+  o_socket.on("system_status", on_system_status);
+  o_socket.on("workflow_status", on_workflow_status);
+  o_socket.on("node_status", on_node_status);
 
-    return () => {
-      o_socket.off("connect", on_connect_socket);
-      o_socket.off("system_status", on_system_status);
-      o_socket.off("workflow_status", on_workflow_status);
-      o_socket.off("node_status", on_node_status);
-    };
-  }, [o_socket]);
+  return () => {
+    o_socket.off("connect", on_connect_socket);
+    o_socket.off("connect_error", on_connect_error);
+    o_socket.off("disconnect", on_disconnect);
+    o_socket.off("system_status", on_system_status);
+    o_socket.off("workflow_status", on_workflow_status);
+    o_socket.off("node_status", on_node_status);
+  };
+}, [o_socket]);
 
   function toggle_theme(): void {
     const s_next_theme = s_theme_mode === "light" ? "dark" : "light";
@@ -1590,91 +1643,91 @@ function AgentDesignerContent(): JSX.Element {
   }
 
   function get_hidden_runner_host_style(): React.CSSProperties {
-  return {
-    position: "absolute",
-    width: "1px",
-    height: "1px",
-    opacity: 0,
-    pointerEvents: "none",
-    overflow: "hidden",
-    left: 0,
-    top: 0,
-  };
-}
+    return {
+      position: "absolute",
+      width: "1px",
+      height: "1px",
+      opacity: 0,
+      pointerEvents: "none",
+      overflow: "hidden",
+      left: 0,
+      top: 0,
+    };
+  }
   function on_runner_result(o_run_result: TRunWorkflowResult): void {
-  /*
+    /*
   central history:
   - 2026-04-22: Shared run result handling added for dedicated hidden runner host. author Marcus Schlieper
   */
-  if (!o_run_result || typeof o_run_result !== "object") {
+    if (!o_run_result || typeof o_run_result !== "object") {
+      set_workflow_run_state("error");
+      set_workflow_status_text("Workflow error");
+      set_is_starting_workflow(false);
+      return;
+    }
+
+    apply_run_results_to_state(
+      extract_result_array(o_run_result),
+      set_node_status_map,
+      set_node_result_map
+    );
+
+    const b_success = is_successful_run_result(o_run_result);
+
+    if (b_success) {
+      set_workflow_run_state("finished");
+      set_workflow_status_text("Workflow finished");
+      set_is_starting_workflow(false);
+      return;
+    }
+
     set_workflow_run_state("error");
-    set_workflow_status_text("Workflow error");
+    set_workflow_status_text(
+      typeof o_run_result.error === "string" && o_run_result.error.trim() !== ""
+        ? `Workflow error: ${o_run_result.error}`
+        : "Workflow error"
+    );
     set_is_starting_workflow(false);
-    return;
   }
-
-  apply_run_results_to_state(
-    extract_result_array(o_run_result),
-    set_node_status_map,
-    set_node_result_map,
-  );
-
-  const b_success = is_successful_run_result(o_run_result);
-
-  if (b_success) {
-    set_workflow_run_state("finished");
-    set_workflow_status_text("Workflow finished");
-    set_is_starting_workflow(false);
-    return;
-  }
-
-  set_workflow_run_state("error");
-  set_workflow_status_text(
-    typeof o_run_result.error === "string" && o_run_result.error.trim() !== ""
-      ? `Workflow error: ${o_run_result.error}`
-      : "Workflow error",
-  );
-  set_is_starting_workflow(false);
-}
   async function on_start_workflow_click(): Promise<void> {
-  /*
+    /*
   central history:
   - 2026-04-22: Workflow start uses always mounted hidden runner panel. author Marcus Schlieper
   */
-  if (b_is_starting_workflow) {
-    return;
-  }
-
-  if (!Array.isArray(nodes) || nodes.length === 0) {
-    window.alert("Es sind keine Nodes vorhanden.");
-    return;
-  }
-
-  set_is_starting_workflow(true);
-  set_workflow_run_state("starting");
-  set_workflow_status_text("Workflow starting");
-  set_node_status_map({});
-  set_node_result_map({});
-
-  try {
-    const o_runner_panel = o_runner_panel_ref.current;
-
-    if (!o_runner_panel || typeof o_runner_panel.on_run !== "function") {
-      throw new Error("Runner panel handle is not available.");
+    if (b_is_starting_workflow) {
+      return;
     }
 
-    await o_runner_panel.on_run();
-  } catch (o_error) {
-    const s_error =
-      o_error instanceof Error && o_error.message.trim() !== ""
-        ? o_error.message.trim()
-        : "Workflow start error";
+    if (!Array.isArray(nodes) || nodes.length === 0) {
+      window.alert("Es sind keine Nodes vorhanden.");
+      return;
+    }
 
-    set_workflow_run_state("error");
-    set_workflow_status_text(`Workflow error: ${s_error}`);
-    set_is_starting_workflow(false);
+    set_is_starting_workflow(true);
+    set_workflow_run_state("starting");
+    set_workflow_status_text("Workflow starting");
+    set_node_status_map({});
+    set_node_result_map({});
+
+    try {
+      const o_runner_panel = o_runner_panel_ref.current;
+
+      if (!o_runner_panel || typeof o_runner_panel.on_run !== "function") {
+        throw new Error("Runner panel handle is not available.");
+      }
+
+      await o_runner_panel.on_run();
+    } catch (o_error) {
+      const s_error =
+        o_error instanceof Error && o_error.message.trim() !== ""
+          ? o_error.message.trim()
+          : "Workflow start error";
+
+      set_workflow_run_state("error");
+      set_workflow_status_text(`Workflow error: ${s_error}`);
+      set_is_starting_workflow(false);
+    }
   }
-}
 
   function on_stop_workflow_click(): void {
     set_workflow_run_state("stopped");
@@ -2378,50 +2431,58 @@ function AgentDesignerContent(): JSX.Element {
           </h3>
 
           <div style={get_workspace_panel_body_style()}>
-  {s_active_workspace_panel === "chat" && (
-    <ChatPanel
-      a_messages={a_safe_chat_messages}
-      on_submit_message={on_submit_chat_message}
-    />
-  )}
+            {s_active_workspace_panel === "chat" && (
+              <ChatPanel
+                a_messages={a_safe_chat_messages}
+                on_submit_message={on_submit_chat_message}
+              />
+            )}
 
-  {s_active_workspace_panel === "telemetry" && (
-    <div style={{ fontSize: "12px", color: "var(--color_text_muted)" }}>
-      {a_live_logs.length === 0 ? (
-        <div>No live events</div>
-      ) : (
-        a_live_logs.map((s_log, i_index) => (
-          <div key={`log_${i_index}`}>{s_log}</div>
-        ))
-      )}
-    </div>
-  )}
+            {s_active_workspace_panel === "telemetry" && (
+              <div
+                style={{ fontSize: "12px", color: "var(--color_text_muted)" }}
+              >
+                {a_live_logs.length === 0 ? (
+                  <div>No live events</div>
+                ) : (
+                  a_live_logs.map((s_log, i_index) => (
+                    <div key={`log_${i_index}`}>{s_log}</div>
+                  ))
+                )}
+              </div>
+            )}
 
-  <div style={get_hidden_runner_host_style()}>
-  <RunnerPanel
-    ref={o_runner_panel_ref}
-    nodes={nodes}
-    edges={edges}
-    s_workflow_run_state={s_workflow_run_state}
-    s_workflow_status_text={s_workflow_status_text}
-    on_run_result={on_runner_result}
-  />
-</div>
+            <div style={get_hidden_runner_host_style()}>
+              <RunnerPanel
+                ref={o_runner_panel_ref}
+                nodes={nodes}
+                edges={edges}
+                s_workflow_run_state={s_workflow_run_state}
+                s_workflow_status_text={s_workflow_status_text}
+                on_run_result={on_runner_result}
+              />
+            </div>
 
-  <div style={get_hidden_panel_style(s_active_workspace_panel === "workspace_tabs")}>
-    <RightSidebarTabs
-      ref={o_right_sidebar_tabs_ref}
-      o_selected_node={nodes.find((o_node) => o_node.id === s_selected_node_id)}
-      s_workflow_run_state={s_workflow_run_state}
-      s_workflow_status_text={s_workflow_status_text}
-      on_run_result={on_runner_result}
-    />
-  </div>
+            <div
+              style={get_hidden_panel_style(
+                s_active_workspace_panel === "workspace_tabs"
+              )}
+            >
+              <RightSidebarTabs
+                ref={o_right_sidebar_tabs_ref}
+                o_selected_node={nodes.find(
+                  (o_node) => o_node.id === s_selected_node_id
+                )}
+                s_workflow_run_state={s_workflow_run_state}
+                s_workflow_status_text={s_workflow_status_text}
+                on_run_result={on_runner_result}
+              />
+            </div>
 
-  {s_active_workspace_panel === "settings" && (
-    <div>Einstellungen werden hier angezeigt.</div>
-  )}
-</div>
+            {s_active_workspace_panel === "settings" && (
+              <div>Einstellungen werden hier angezeigt.</div>
+            )}
+          </div>
         </div>
 
         <input

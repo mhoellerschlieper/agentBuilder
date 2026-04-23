@@ -15,9 +15,10 @@
 # - 2026-04-12: Classifier Node und verbessertes Switch Routing mit case Werten ergaenzt. author Marcus Schlieper
 # - 2026-04-14: Node Implementierungen in eigenes Repository und dynamischen Loader ausgelagert. author Marcus Schlieper
 # - 2026-04-18: Mehrere aktive Output-Handles fuer switch und classifier Routing ergaenzt. author ChatGPT
+# - 2026-04-23: Live Status Payload auf running, finished_ok und finished_error fuer Frontend Anzeige umgestellt. author Marcus Schlieper
+# - 2026-04-23: Node Laufzeitmessung in Millisekunden fuer Frontend Anzeige ergaenzt. author Marcus Schlieper
 
 import copy
-import json
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -29,6 +30,7 @@ from services.node_runtime.node_loader import NodeLoader
 
 class WorkflowRunner:
     # Fuehrt einen Workflow sicher anhand eines Graphen aus.
+
     def __init__(self, websocket_manager) -> None:
         self.websocket_manager = websocket_manager
         self.node_loader = NodeLoader()
@@ -74,7 +76,6 @@ class WorkflowRunner:
         d_results_by_node_id: Dict[str, Dict[str, Any]] = {}
         d_workflow_map = self._build_workflow_map(a_workflow)
         d_node_enabled: Dict[str, bool] = self._build_initial_enabled_map(a_workflow)
-
         b_failed = False
         s_error = ""
 
@@ -107,8 +108,8 @@ class WorkflowRunner:
 
             for o_result in a_level_results:
                 a_results.append(o_result)
-
                 s_node_id = str(o_result.get("node_id", "")).strip()
+
                 if s_node_id != "":
                     d_results_by_node_id[s_node_id] = o_result
 
@@ -146,7 +147,6 @@ class WorkflowRunner:
             "workflow_status",
             {"status": "finished", "workflow_name": s_name},
         )
-
         return {
             "success": True,
             "workflow_name": s_name,
@@ -171,11 +171,11 @@ class WorkflowRunner:
 
             if s_node_id == "":
                 raise ValueError("node_id_required")
+
             if s_node_id in d_node_map:
                 raise ValueError("duplicate_node_id")
 
             d_handles = self._extract_node_handles(o_node)
-
             d_node_map[s_node_id] = {
                 "Node": o_node,
                 "id": s_node_id,
@@ -217,7 +217,6 @@ class WorkflowRunner:
             if s_target_handle != "":
                 if s_target_handle not in d_node_map[s_target]["target_handles"]:
                     d_node_map[s_target]["target_handles"][s_target_handle] = []
-
                 d_node_map[s_target]["target_handles"][s_target_handle].append(
                     {
                         "source_node_id": s_source,
@@ -269,6 +268,7 @@ class WorkflowRunner:
                 s_key = f"{s_kind}_{i_index + 1}"
 
             s_key = self._sanitize_handle_key(s_key)
+
             if s_key == "":
                 s_key = f"{s_kind}_{i_index + 1}"
 
@@ -311,13 +311,11 @@ class WorkflowRunner:
         a_workflow: List[Dict[str, Any]],
     ) -> Dict[str, Dict[str, Any]]:
         d_workflow_map: Dict[str, Dict[str, Any]] = {}
-
         for o_item in a_workflow:
             s_node_id = str(o_item.get("id", "")).strip()
             if s_node_id == "":
                 raise ValueError("workflow_node_id_required")
             d_workflow_map[s_node_id] = o_item
-
         return d_workflow_map
 
     def _build_initial_enabled_map(
@@ -325,12 +323,10 @@ class WorkflowRunner:
         a_workflow: List[Dict[str, Any]],
     ) -> Dict[str, bool]:
         d_node_enabled: Dict[str, bool] = {}
-
         for o_item in a_workflow:
             s_node_id = str(o_item.get("id", "")).strip()
             a_prev_nodes = o_item.get("PrevNodes", [])
             d_node_enabled[s_node_id] = len(a_prev_nodes) == 0
-
         return d_node_enabled
 
     def _build_execution_levels(
@@ -344,7 +340,6 @@ class WorkflowRunner:
             s_node_id = str(o_item.get("id", "")).strip()
             if s_node_id == "":
                 raise ValueError("workflow_node_id_required")
-
             d_workflow_map[s_node_id] = o_item
             d_in_degree[s_node_id] = len(o_item.get("PrevNodes", []))
 
@@ -357,7 +352,6 @@ class WorkflowRunner:
             raise ValueError("workflow_has_no_entry_node")
 
         i_processed = 0
-
         while a_current_ids:
             a_level: List[Dict[str, Any]] = []
             a_next_ids: List[str] = []
@@ -388,12 +382,10 @@ class WorkflowRunner:
         d_node_enabled: Dict[str, bool],
     ) -> List[Dict[str, Any]]:
         a_enabled_level: List[Dict[str, Any]] = []
-
         for o_item in a_level:
             s_node_id = str(o_item.get("id", "")).strip()
             if d_node_enabled.get(s_node_id, False):
                 a_enabled_level.append(o_item)
-
         return a_enabled_level
 
     def _build_skipped_results_for_disabled_nodes(
@@ -402,7 +394,6 @@ class WorkflowRunner:
         d_node_enabled: Dict[str, bool],
     ) -> List[Dict[str, Any]]:
         a_results: List[Dict[str, Any]] = []
-
         for o_item in a_level:
             s_node_id = str(o_item.get("id", "")).strip()
             s_node_type = str(o_item.get("type", "unknown")).strip()
@@ -415,6 +406,7 @@ class WorkflowRunner:
                 "node_type": s_node_type,
                 "status": "skipped",
                 "reason": "node_disabled_by_routing",
+                "i_runtime_ms": 0,
             }
 
             self.websocket_manager.emit_status(
@@ -424,9 +416,9 @@ class WorkflowRunner:
                     "node_type": s_node_type,
                     "status": "skipped",
                     "reason": "node_disabled_by_routing",
+                    "i_runtime_ms": 0,
                 },
             )
-
             a_results.append(o_result)
 
         return a_results
@@ -437,12 +429,10 @@ class WorkflowRunner:
         d_results_by_node_id: Dict[str, Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
         a_results: List[Dict[str, Any]] = []
-
         if not a_level:
             return a_results
 
         i_max_workers = max(1, min(8, len(a_level)))
-
         with ThreadPoolExecutor(max_workers=i_max_workers) as o_executor:
             d_future_map = {
                 o_executor.submit(
@@ -464,6 +454,10 @@ class WorkflowRunner:
         o_item: Dict[str, Any],
         d_results_by_node_id: Dict[str, Dict[str, Any]],
     ) -> Dict[str, Any]:
+        # history:
+        # - 2026-04-23: Live Status fuer Frontend auf running, finished_ok und finished_error umgestellt. author Marcus Schlieper
+        # - 2026-04-23: Laufzeitmessung je Node in Millisekunden ergaenzt. author Marcus Schlieper
+
         o_node = o_item.get("Node", {})
         s_node_id = str(o_item.get("id", "unknown"))
         s_node_type = str(o_item.get("type", "unknown"))
@@ -476,12 +470,15 @@ class WorkflowRunner:
             d_results_by_node_id,
         )
 
+        d_started_at = time.perf_counter()
+
         self.websocket_manager.emit_status(
             "node_status",
             {
                 "node_id": s_node_id,
                 "node_type": s_node_type,
                 "status": "running",
+                "i_runtime_ms": 0,
             },
         )
 
@@ -498,12 +495,15 @@ class WorkflowRunner:
             )
             o_result = self._normalize_node_result(o_result, o_item)
 
+            i_runtime_ms = max(0, int(round((time.perf_counter() - d_started_at) * 1000)))
+
             self.websocket_manager.emit_status(
                 "node_status",
                 {
                     "node_id": s_node_id,
                     "node_type": s_node_type,
-                    "status": "success",
+                    "status": "finished_ok",
+                    "i_runtime_ms": i_runtime_ms,
                     "result": o_result,
                 },
             )
@@ -514,7 +514,8 @@ class WorkflowRunner:
                     {
                         "node_id": s_node_id,
                         "node_type": s_node_type,
-                        "status": "success",
+                        "status": "finished_ok",
+                        "i_runtime_ms": i_runtime_ms,
                         "result": o_result,
                     },
                 )
@@ -523,19 +524,22 @@ class WorkflowRunner:
                 "node_id": s_node_id,
                 "node_type": s_node_type,
                 "status": "success",
+                "i_runtime_ms": i_runtime_ms,
                 "result": o_result,
                 "inputs": o_input_context,
             }
 
         except Exception as o_exc:
             s_error = str(o_exc)
+            i_runtime_ms = max(0, int(round((time.perf_counter() - d_started_at) * 1000)))
 
             self.websocket_manager.emit_status(
                 "node_status",
                 {
                     "node_id": s_node_id,
                     "node_type": s_node_type,
-                    "status": "error",
+                    "status": "finished_error",
+                    "i_runtime_ms": i_runtime_ms,
                     "error": s_error,
                 },
             )
@@ -544,6 +548,7 @@ class WorkflowRunner:
                 "node_id": s_node_id,
                 "node_type": s_node_type,
                 "status": "error",
+                "i_runtime_ms": i_runtime_ms,
                 "error": s_error,
                 "inputs": o_input_context,
             }
@@ -761,14 +766,12 @@ class WorkflowRunner:
 
             d_source_handles = o_workflow_item.get("source_handles", {})
             a_active_output_handles = o_output.get("active_output_handles", [])
-
             if not isinstance(a_active_output_handles, list):
                 a_active_output_handles = []
 
             s_selected_handle = self._sanitize_handle_key(
                 str(o_output.get("selected_handle", "")).strip()
             )
-
             if s_selected_handle != "":
                 a_active_output_handles.append(s_selected_handle)
 
@@ -791,7 +794,6 @@ class WorkflowRunner:
                 a_selected_next_nodes = d_source_handles.get(s_handle, [])
                 for s_next_node_id in a_selected_next_nodes:
                     d_node_enabled[s_next_node_id] = True
-
             return
 
         for s_next_node_id in a_next_nodes:

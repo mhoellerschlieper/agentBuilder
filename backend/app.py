@@ -1,21 +1,21 @@
 # file: backend/app.py
-# description: Flask Anwendung mit sicheren REST Endpunkten und Websocket Support fuer Workflow Start, Live Status und Tool Registry aus JSON.
+# description: Flask Anwendung mit sicheren REST Endpunkten und Websocket Support
+# fuer Workflow Start, Live Status und Tool Registry aus JSON.
 # history:
 # - 2026-03-25: Erstellt fuer Lowcode Backend. author Marcus Schlieper
 # - 2026-04-04: Workflow Run Endpunkt fuer Frontend Start und verbesserte Fehlerantworten erweitert. author Marcus Schlieper
 # - 2026-04-11: Tools Endpunkt fuer Frontend Tool Registry aus JSON Datei ergaenzt. author Marcus Schlieper
+# - 2026-04-23: SocketIO Start in Main Guard verschoben, damit Websocket Events stabil registriert bleiben. author Marcus Schlieper
 # author Marcus Schlieper
-# venv aktivieren:  .\.venv\Scripts\Activate.ps1 
+# venv aktivieren: .\.venv\Scripts\Activate.ps1
 # {{input:input_main.results}}
 
 from functools import wraps
 from pathlib import Path
 import json
-
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
-
 from config import Config
 from services.validation_service import ValidationService
 from services.websocket_manager import WebsocketManager
@@ -31,9 +31,16 @@ a_origins = [
     if s_item.strip()
 ]
 
+#a_origins ="*"
+# Wichtig:
+# CORS nicht nur fuer /api/*, sondern auch fuer Socket.IO aktivieren.
+# Socket.IO nutzt zuerst oft polling unter /socket.io/.
 CORS(
     app,
-    resources={r"/api/*": {"origins": a_origins}},
+    resources={
+        r"/api/*": {"origins": a_origins},
+        r"/socket.io/*": {"origins": a_origins},
+    },
     supports_credentials=False,
 )
 
@@ -41,6 +48,8 @@ socketio = SocketIO(
     app,
     cors_allowed_origins=a_origins,
     async_mode=app.config["SOCKET_ASYNC_MODE"],
+    # Erlaubt beide ueblichen Transportwege.
+    transports=["polling", "websocket"],
 )
 
 websocket_manager = WebsocketManager(socketio)
@@ -150,10 +159,19 @@ def run_workflow() -> tuple:
     i_status = 200 if o_result.get("success") else 500
     return jsonify(o_result), i_status
 
+@app.get("/api/debug/cors")
+def debug_cors() -> tuple:
+    # Liefert die aktiven erlaubten Origins fuer lokale Fehlersuche.
+    return jsonify(
+        {
+            "success": True,
+            "allowed_origins": a_origins,
+        }
+    ), 200
 
 @socketio.on("connect", namespace="/ws")
 def handle_connect():
-    # Verbindungsbestaetigung fuer Clients.
+    # Verbindungsbestaetigung fuer Clients im Namespace ws.
     websocket_manager.emit_status("system_status", {"status": "connected"})
 
 
@@ -164,4 +182,5 @@ def handle_disconnect():
 
 
 if __name__ == "__main__":
+    # Start nur im Main Guard, damit Imports keine zweite App Instanz starten.
     socketio.run(app, host="0.0.0.0", port=8000, debug=False)

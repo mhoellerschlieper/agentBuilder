@@ -35,6 +35,8 @@ import {
   RenderRuntimeResult,
 } from "./node_runtime_helpers";
 
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
+
 function get_item_box_style(): React.CSSProperties {
   return {
     position: "relative",
@@ -153,6 +155,7 @@ export function CodeNode({ id, data }: NodeProps): JSX.Element {
           s_title="Code"
           s_subtitle={s_code_preview}
         />
+        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
         <NodeDeleteButton node_id={id} />
       </div>
 

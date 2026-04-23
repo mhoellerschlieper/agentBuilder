@@ -35,6 +35,8 @@ import {
   RenderRuntimeResult,
 } from "./node_runtime_helpers";
 
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
+
 function create_rule_id(): string {
   return (
     "rule_" +
@@ -192,6 +194,7 @@ export function ConditionNode({ id, data }: NodeProps): JSX.Element {
           s_title="Condition"
           s_subtitle={"If - " + String(a_rules.length) + " rules"}
         />
+        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
         <NodeDeleteButton node_id={id} />
       </div>
 

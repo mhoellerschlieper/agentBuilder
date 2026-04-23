@@ -25,6 +25,8 @@ import {
   get_node_wrapper_style,
 } from "./node_runtime_helpers";
 
+import { BaseNodeStatusBadge } from "./base_node_status_badge";
+
 export function CommentNode({ id, data }: NodeProps): JSX.Element {
   const o_data = (data as ICommentNodeData) || ({} as ICommentNodeData);
   const { update_node_data } = use_workflow_store();
@@ -48,6 +50,7 @@ export function CommentNode({ id, data }: NodeProps): JSX.Element {
           s_title="Comment"
           s_subtitle={s_preview}
         />
+        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
         <NodeDeleteButton node_id={id} />
       </div>
 
