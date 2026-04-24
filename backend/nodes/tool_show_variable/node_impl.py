@@ -4,6 +4,7 @@
 # - 2026-04-24: Umbenennung von show_tool auf tool_show_variable. author Marcus Schlieper
 # - 2026-04-24: Sichere Textdarstellung und strukturierter Output beibehalten. author ChatGPT
 # - 2026-04-24: Eingabe s_value entfernt und Eingabe s_variable hinzugefuegt. author Marcus Schlieper
+# - 2026-04-24: Unterstuetzung fuer Punktnotation wie test oder data.test.value hinzugefuegt. author ChatGPT
 
 import copy
 import json
@@ -13,6 +14,7 @@ from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import (
     extract_primary_named_input,
+    get_nested_value,
     replace_input_placeholders,
 )
 
@@ -51,6 +53,7 @@ class ToolShowVariableNode(BaseNode):
             o_input_value=o_input_value,
             s_variable=s_variable,
         )
+
         s_display_text = self._stringify_value(o_display_value)
 
         o_output = {
@@ -82,7 +85,7 @@ class ToolShowVariableNode(BaseNode):
     ) -> Any:
         # history:
         # - 2026-04-24: Erste Aufloesung eines Variablennamens aus dem Eingang. author Marcus Schlieper
-
+        # - 2026-04-24: Punktnotation fuer verschachtelte Werte hinzugefuegt. author ChatGPT
         if s_variable == "":
             return o_input_value
 
@@ -92,7 +95,7 @@ class ToolShowVariableNode(BaseNode):
         if s_variable in o_input_value:
             return o_input_value.get(s_variable)
 
-        return None
+        return get_nested_value(o_input_value, s_variable)
 
     def _stringify_value(self, o_value: Any) -> str:
         if isinstance(o_value, dict):
