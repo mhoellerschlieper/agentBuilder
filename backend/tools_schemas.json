@@ -2155,7 +2155,7 @@
             "s_group": "System",
             "s_subgroup": "Display",
             "s_icon": "visibility",
-            "s_description": "Zeigt einen Wert fuer Anzeige oder Debug Zwecke an.",
+            "s_description": "Zeigt eine Variable aus dem Eingang fuer Anzeige oder Debug Zwecke an.",
             "s_class_name": "node_tool",
             "a_input_handles": [
                 "input"
@@ -2172,9 +2172,9 @@
                     "s_default": "Output"
                 },
                 {
-                    "s_key": "s_value",
-                    "s_label": "Value",
-                    "s_field_type": "textarea",
+                    "s_key": "s_variable",
+                    "s_label": "Variable",
+                    "s_field_type": "text",
                     "b_required": false,
                     "s_default": ""
                 }

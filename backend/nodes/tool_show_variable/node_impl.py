@@ -1,8 +1,9 @@
 # file: backend/nodes/tool_show_variable/node_impl.py
-# description: Node zum Anzeigen oder Durchreichen eines Wertes fuer UI und Debug Zwecke.
+# description: Node zum Anzeigen eines Wertes aus dem Eingang ueber einen Variablennamen fuer UI und Debug Zwecke.
 # history:
 # - 2026-04-24: Umbenennung von show_tool auf tool_show_variable. author Marcus Schlieper
 # - 2026-04-24: Sichere Textdarstellung und strukturierter Output beibehalten. author ChatGPT
+# - 2026-04-24: Eingabe s_value entfernt und Eingabe s_variable hinzugefuegt. author Marcus Schlieper
 
 import copy
 import json
@@ -25,7 +26,7 @@ class ToolShowVariableNode(BaseNode):
             {
                 "s_key": "input_main",
                 "s_label": "input",
-                "s_description": "value to show",
+                "s_description": "value source for display",
             }
         ]
 
@@ -43,18 +44,18 @@ class ToolShowVariableNode(BaseNode):
         o_data = replace_input_placeholders(o_data, o_context.input_context)
 
         s_title = str(o_data.get("s_title", "Output")).strip() or "Output"
-        s_value = str(o_data.get("s_value", "")).strip()
+        s_variable = str(o_data.get("s_variable", "")).strip()
 
         o_input_value = extract_primary_named_input(o_context.input_context)
-        o_display_value = o_input_value
-
-        if s_value != "":
-            o_display_value = s_value
-
+        o_display_value = self._resolve_variable_from_input(
+            o_input_value=o_input_value,
+            s_variable=s_variable,
+        )
         s_display_text = self._stringify_value(o_display_value)
 
         o_output = {
             "title": s_title,
+            "variable": s_variable,
             "display_text": s_display_text,
             "display_value": o_display_value,
             "resolved_data": {
@@ -73,6 +74,25 @@ class ToolShowVariableNode(BaseNode):
                 },
             },
         }
+
+    def _resolve_variable_from_input(
+        self,
+        o_input_value: Any,
+        s_variable: str,
+    ) -> Any:
+        # history:
+        # - 2026-04-24: Erste Aufloesung eines Variablennamens aus dem Eingang. author Marcus Schlieper
+
+        if s_variable == "":
+            return o_input_value
+
+        if not isinstance(o_input_value, dict):
+            return None
+
+        if s_variable in o_input_value:
+            return o_input_value.get(s_variable)
+
+        return None
 
     def _stringify_value(self, o_value: Any) -> str:
         if isinstance(o_value, dict):

@@ -64,6 +64,7 @@ class ToolSetVariableNode(BaseNode):
         return {
             "message": "tool_set_variable_ok",
             "output": o_output,
+            "results": o_output,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "output",
