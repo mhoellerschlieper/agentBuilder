@@ -34,7 +34,7 @@ The repository contains the definition and implementation of many tools that ser
 
 Source: document &ldquo;README Proposal / Screenshot Description,&rdquo; p. 1; document &ldquo;Tool Definitions,&rdquo; p. 1.
 
-## Available Tools
+## Available Tools (not all tools are available actually)
 
 ### Automation
 
