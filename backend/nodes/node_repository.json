@@ -87,13 +87,6 @@
       "b_enabled": true
     },
     {
-      "s_node_type": "tool_email_send",
-      "s_module_path": "nodes.tool_email_send.node_impl",
-      "s_class_name": "ToolEmailSend",
-      "s_version": "1.0.0",
-      "b_enabled": true
-    },
-    {
       "s_node_type": "tool_web_search",
       "s_module_path": "nodes.tool_web_search.node_impl",
       "s_class_name": "ToolWebSearch",
@@ -115,12 +108,12 @@
       "b_enabled": true
     },
     {
-    "s_node_type": "tool_list_mails",
-    "s_module_path": "nodes.tool_list_mails.node_impl",
-    "s_class_name": "ToolListMails",
-    "s_version": "1.0.0",
-    "b_enabled": true
-  },
+      "s_node_type": "tool_list_mails",
+      "s_module_path": "nodes.tool_list_mails.node_impl",
+      "s_class_name": "ToolListMails",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
     {
       "s_node_type": "tool_send_mail",
       "s_module_path": "nodes.tool_send_mail.node_impl",
@@ -129,131 +122,163 @@
       "b_enabled": true
     },
     {
-      "s_node_type": "tool_pdf_create",
-      "s_module_path": "nodes.tool_pdf_create.node_impl",
-      "s_class_name": "ToolPdfCreate",
+      "s_node_type": "tool_translator",
+      "s_module_path": "nodes.tool_translator.node_impl",
+      "s_class_name": "ToolTranslatorNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
     {
-      "s_node_type": "tool_pdf_extract_text",
-      "s_module_path": "nodes.tool_pdf_extract_text.node_impl",
-      "s_class_name": "ToolPdfExtractText",
+      "s_node_type": "tool_data_extractor",
+      "s_module_path": "nodes.tool_data_extractor.node_impl",
+      "s_class_name": "ToolDataExtractorNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
     {
-      "s_node_type": "tool_excel_read",
-      "s_module_path": "nodes.tool_excel_read.node_impl",
-      "s_class_name": "ToolExcelRead",
+      "s_node_type": "tool_text_summarize",
+      "s_module_path": "nodes.tool_text_summarize.node_impl",
+      "s_class_name": "ToolTextSummarizeNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
     {
-      "s_node_type": "tool_excel_write",
-      "s_module_path": "nodes.tool_excel_write.node_impl",
-      "s_class_name": "ToolExcelWrite",
+      "s_node_type": "tool_text_sentinize",
+      "s_module_path": "nodes.tool_text_sentinize.node_impl",
+      "s_class_name": "ToolTextSentinizeNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
-    {
-      "s_node_type": "tool_mysql_query",
-      "s_module_path": "nodes.tool_mysql_query.node_impl",
-      "s_class_name": "ToolMysqlQuery",
-      "s_version": "1.0.0",
-      "b_enabled": true
-    },
-    {
-      "s_node_type": "tool_weather_current",
-      "s_module_path": "nodes.tool_weather_current.node_impl",
-      "s_class_name": "ToolWeatherCurrent",
-      "s_version": "1.0.0",
-      "b_enabled": true
-    },
-    {
-      "s_node_type": "tool_news_search",
-      "s_module_path": "nodes.tool_news_search.node_impl",
-      "s_class_name": "ToolNewsSearch",
-      "s_version": "1.0.0",
-      "b_enabled": true
-    },
- {
-  "s_node_type": "tool_translator",
-  "s_module_path": "nodes.tool_translator.node_impl",
-  "s_class_name": "ToolTranslatorNode",
-  "s_version": "1.0.0",
-  "b_enabled": true
-},
-{
-  "s_node_type": "tool_data_extractor",
-  "s_module_path": "nodes.tool_data_extractor.node_impl",
-  "s_class_name": "ToolDataExtractorNode",
-  "s_version": "1.0.0",
-  "b_enabled": true
-},
-
-   {
-  "s_node_type": "tool_text_summarize",
-  "s_module_path": "nodes.tool_text_summarize.node_impl",
-  "s_class_name": "ToolTextSummarizeNode",
-  "s_version": "1.0.0",
-  "b_enabled": true
-},
-
-{
-  "s_node_type": "tool_text_sentinize",
-  "s_module_path": "nodes.tool_text_sentinize.node_impl",
-  "s_class_name": "ToolTextSentinizeNode",
-  "s_version": "1.0.0",
-  "b_enabled": true
-},
-
     {
       "s_node_type": "tool_log_write",
       "s_module_path": "nodes.tool_log_write.node_impl",
-      "s_class_name": "ToolLogWrite",
+      "s_class_name": "ToolLogWriteNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
     {
-      "s_node_type": "tool_email_forward",
-      "s_module_path": "nodes.tool_email_forward.node_impl",
-      "s_class_name": "ToolEmailForward",
+      "s_node_type": "tool_set_variable",
+      "s_module_path": "nodes.tool_set_variable.node_impl",
+      "s_class_name": "ToolSetVariableNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
     {
-      "s_node_type": "tool_email_read",
-      "s_module_path": "nodes.tool_email_read.node_impl",
-      "s_class_name": "ToolEmailRead",
+      "s_node_type": "tool_show_variable",
+      "s_module_path": "nodes.tool_show_variable.node_impl",
+      "s_class_name": "ToolShowVariableNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
     {
-      "s_node_type": "tool_email_list",
-      "s_module_path": "nodes.tool_email_list.node_impl",
-      "s_class_name": "ToolEmailList",
+      "s_node_type": "tool_read_mongodb",
+      "s_module_path": "nodes.tool_read_mongodb.node_impl",
+      "s_class_name": "ToolReadMongodbNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
     {
-      "s_node_type": "tool_email_delete",
-      "s_module_path": "nodes.tool_email_delete.node_impl",
-      "s_class_name": "ToolEmailDelete",
+      "s_node_type": "tool_insert_mongodb",
+      "s_module_path": "nodes.tool_insert_mongodb.node_impl",
+      "s_class_name": "ToolInsertMongodbNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
     {
-      "s_node_type": "variable_tool",
-      "s_module_path": "nodes.variable_tool.node_impl",
-      "s_class_name": "VariableTool",
+      "s_node_type": "tool_update_mongodb",
+      "s_module_path": "nodes.tool_update_mongodb.node_impl",
+      "s_class_name": "ToolUpdateMongodbNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },
     {
-      "s_node_type": "show_tool",
-      "s_module_path": "nodes.show_tool.node_impl",
-      "s_class_name": "ShowTool",
+      "s_node_type": "tool_delete_mongodb",
+      "s_module_path": "nodes.tool_delete_mongodb.node_impl",
+      "s_class_name": "ToolDeleteMongodbNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_read_mysql",
+      "s_module_path": "nodes.tool_read_mysql.node_impl",
+      "s_class_name": "ToolReadMysqlNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_insert_mysql",
+      "s_module_path": "nodes.tool_insert_mysql.node_impl",
+      "s_class_name": "ToolInsertMysqlNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_update_mysql",
+      "s_module_path": "nodes.tool_update_mysql.node_impl",
+      "s_class_name": "ToolUpdateMysqlNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_delete_mysql",
+      "s_module_path": "nodes.tool_delete_mysql.node_impl",
+      "s_class_name": "ToolDeleteMysqlNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_delete_mysql",
+      "s_module_path": "nodes.tool_delete_mysql.node_impl",
+      "s_class_name": "ToolDeleteMysqlNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_insert_mssql",
+      "s_module_path": "nodes.tool_insert_mssql.node_impl",
+      "s_class_name": "ToolInsertMssqlNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_insert_mssql",
+      "s_module_path": "nodes.tool_insert_mssql.node_impl",
+      "s_class_name": "ToolInsertMssqlNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_delete_mssql",
+      "s_module_path": "nodes.tool_delete_mssql.node_impl",
+      "s_class_name": "ToolDeleteMssqlNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_read_odbc",
+      "s_module_path": "nodes.tool_read_odbc.node_impl",
+      "s_class_name": "ToolReadOdbcNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_insert_odbc",
+      "s_module_path": "nodes.tool_insert_odbc.node_impl",
+      "s_class_name": "ToolInsertOdbcNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_update_odbc",
+      "s_module_path": "nodes.tool_update_odbc.node_impl",
+      "s_class_name": "ToolUpdateOdbcNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
+    {
+      "s_node_type": "tool_delete_odbc",
+      "s_module_path": "nodes.tool_delete_odbc.node_impl",
+      "s_class_name": "ToolDeleteOdbcNode",
       "s_version": "1.0.0",
       "b_enabled": true
     }

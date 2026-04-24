@@ -375,47 +375,6 @@
             ]
         },
         {
-            "s_type": "tool_mysql_query",
-            "s_label": "MySQL Query",
-            "s_category": "Database",
-            "s_group": "Data",
-            "s_subgroup": "SQL",
-            "s_icon": "database",
-            "s_description": "Fuehrt eine MySQL Abfrage aus.",
-            "s_class_name": "node_tool",
-            "a_input_handles": [
-                "input"
-            ],
-            "a_output_handles": [
-                "output"
-            ],
-            "a_fields": [
-                {
-                    "s_key": "s_connection_name",
-                    "s_label": "Connection Name",
-                    "s_field_type": "text",
-                    "b_required": true,
-                    "s_default": ""
-                },
-                {
-                    "s_key": "s_query",
-                    "s_label": "Query",
-                    "s_field_type": "textarea",
-                    "b_required": true,
-                    "s_default": ""
-                },
-                {
-                    "s_key": "s_result_variable",
-                    "s_label": "Result Variable",
-                    "s_field_type": "variable_select",
-                    "a_allowed_types": [
-                        "array",
-                        "object"
-                    ]
-                }
-            ]
-        },
-        {
             "s_type": "tool_weather_current",
             "s_label": "Weather Current",
             "s_category": "Utility",
@@ -483,357 +442,13 @@
             ]
         },
         {
-  "s_type": "tool_translator",
-  "s_label": "Translator",
-  "s_category": "AI",
-  "s_group": "AI",
-  "s_subgroup": "Language",
-  "s_icon": "language",
-  "s_description": "Uebersetzt einen Text mit einem LLM in eine Zielsprache.",
-  "s_class_name": "node_tool",
-  "a_input_handles": [
-    "input"
-  ],
-  "a_output_handles": [
-    "output"
-  ],
-  "a_fields": [
-    {
-      "s_key": "s_text",
-      "s_label": "Text",
-      "s_field_type": "textarea",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_source_language",
-      "s_label": "Source Language",
-      "s_field_type": "text",
-      "b_required": false,
-      "s_default": "auto"
-    },
-    {
-      "s_key": "s_target_language",
-      "s_label": "Target Language",
-      "s_field_type": "text",
-      "b_required": true,
-      "s_default": "English"
-    },
-    {
-      "s_key": "s_provider",
-      "s_label": "Provider",
-      "s_field_type": "select",
-      "b_required": true,
-      "s_default": "openai",
-      "a_options": [
-        "openai",
-        "endpoint"
-      ]
-    },
-    {
-      "s_key": "s_model_name",
-      "s_label": "Model Name",
-      "s_field_type": "text",
-      "b_required": true,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_api_key",
-      "s_label": "API Key",
-      "s_field_type": "password",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_api_host",
-      "s_label": "API Host",
-      "s_field_type": "text",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "i_timeout",
-      "s_label": "Timeout",
-      "s_field_type": "number",
-      "b_required": true,
-      "d_default": 20000,
-      "d_min": 1000,
-      "d_max": 2000000
-    },
-    {
-      "s_key": "max_completion_tokens",
-      "s_label": "Max Completion Tokens",
-      "s_field_type": "number",
-      "b_required": true,
-      "d_default": 2000,
-      "d_min": 100,
-      "d_max": 16000
-    }
-
-  ]
-},
-{
-  "s_type": "tool_data_extractor",
-  "s_label": "Data Extractor",
-  "s_category": "AI",
-  "s_group": "AI",
-  "s_subgroup": "Extraction",
-  "s_icon": "schema",
-  "s_description": "Extrahiert Daten aus einem Text in ein vorgegebenes JSON.",
-  "s_class_name": "node_tool",
-  "a_input_handles": [
-    "input"
-  ],
-  "a_output_handles": [
-    "output"
-  ],
-  "a_fields": [
-    {
-      "s_key": "s_text",
-      "s_label": "Text",
-      "s_field_type": "textarea",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_json_template",
-      "s_label": "JSON Template",
-      "s_field_type": "textarea",
-      "b_required": true,
-      "s_default": "{}"
-    },
-    {
-      "s_key": "s_annotation",
-      "s_label": "Annotation",
-      "s_field_type": "textarea",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_provider",
-      "s_label": "Provider",
-      "s_field_type": "select",
-      "b_required": true,
-      "s_default": "openai",
-      "a_options": [
-        "openai",
-        "endpoint"
-      ]
-    },
-    {
-      "s_key": "s_model_name",
-      "s_label": "Model Name",
-      "s_field_type": "text",
-      "b_required": true,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_api_key",
-      "s_label": "API Key",
-      "s_field_type": "password",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_api_host",
-      "s_label": "API Host",
-      "s_field_type": "text",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "i_timeout",
-      "s_label": "Timeout",
-      "s_field_type": "number",
-      "b_required": true,
-      "d_default": 20000,
-      "d_min": 1000,
-      "d_max": 2000000
-    },
-    {
-      "s_key": "max_completion_tokens",
-      "s_label": "Max Completion Tokens",
-      "s_field_type": "number",
-      "b_required": true,
-      "d_default": 4000,
-      "d_min": 100,
-      "d_max": 32000
-    }
-  ]
-},
-{
-  "s_type": "tool_text_summarize",
-  "s_label": "Text Summarize",
-  "s_category": "AI",
-  "s_group": "AI",
-  "s_subgroup": "Text",
-  "s_icon": "article",
-  "s_description": "Fasst einen Text mit einem LLM zusammen.",
-  "s_class_name": "node_tool",
-  "a_input_handles": [
-    "input"
-  ],
-  "a_output_handles": [
-    "output"
-  ],
-  "a_fields": [
-    {
-      "s_key": "s_text",
-      "s_label": "Text",
-      "s_field_type": "textarea",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_summary_style",
-      "s_label": "Summary Style",
-      "s_field_type": "select",
-      "b_required": true,
-      "s_default": "short",
-      "a_options": [
-        "short",
-        "medium",
-        "detailed",
-        "bullet_points"
-      ]
-    },
-    {
-      "s_key": "s_provider",
-      "s_label": "Provider",
-      "s_field_type": "select",
-      "b_required": true,
-      "s_default": "openai",
-      "a_options": [
-        "openai",
-        "endpoint"
-      ]
-    },
-    {
-      "s_key": "s_model_name",
-      "s_label": "Model Name",
-      "s_field_type": "text",
-      "b_required": true,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_api_key",
-      "s_label": "API Key",
-      "s_field_type": "password",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_api_host",
-      "s_label": "API Host",
-      "s_field_type": "text",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "i_timeout",
-      "s_label": "Timeout",
-      "s_field_type": "number",
-      "b_required": true,
-      "d_default": 20000,
-      "d_min": 1000,
-      "d_max": 2000000
-    },
-    {
-      "s_key": "max_completion_tokens",
-      "s_label": "Max Completion Tokens",
-      "s_field_type": "number",
-      "b_required": true,
-      "d_default": 2000,
-      "d_min": 100,
-      "d_max": 16000
-    }
-  ]
-},
-{
-  "s_type": "tool_text_sentinize",
-  "s_label": "Text Sentinize",
-  "s_category": "AI",
-  "s_group": "AI",
-  "s_subgroup": "Text",
-  "s_icon": "mood",
-  "s_description": "Ermittelt die Stimmung eines Textes mit einem LLM.",
-  "s_class_name": "node_tool",
-  "a_input_handles": [
-    "input"
-  ],
-  "a_output_handles": [
-    "output"
-  ],
-  "a_fields": [
-    {
-      "s_key": "s_text",
-      "s_label": "Text",
-      "s_field_type": "textarea",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_provider",
-      "s_label": "Provider",
-      "s_field_type": "select",
-      "b_required": true,
-      "s_default": "openai",
-      "a_options": [
-        "openai",
-        "endpoint"
-      ]
-    },
-    {
-      "s_key": "s_model_name",
-      "s_label": "Model Name",
-      "s_field_type": "text",
-      "b_required": true,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_api_key",
-      "s_label": "API Key",
-      "s_field_type": "password",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "s_api_host",
-      "s_label": "API Host",
-      "s_field_type": "text",
-      "b_required": false,
-      "s_default": ""
-    },
-    {
-      "s_key": "i_timeout",
-      "s_label": "Timeout",
-      "s_field_type": "number",
-      "b_required": true,
-      "d_default": 20000,
-      "d_min": 1000,
-      "d_max": 2000000
-    },
-    {
-      "s_key": "max_completion_tokens",
-      "s_label": "Max Completion Tokens",
-      "s_field_type": "number",
-      "b_required": true,
-      "d_default": 1500,
-      "d_min": 100,
-      "d_max": 8000
-    }
-  ]
-},
-
-
-        {
-            "s_type": "tool_log_write",
-            "s_label": "Log Write",
-            "s_category": "Monitoring",
-            "s_group": "Operations",
-            "s_subgroup": "Logging",
-            "s_icon": "logs",
-            "s_description": "Schreibt einen Log Eintrag.",
+            "s_type": "tool_translator",
+            "s_label": "Translator",
+            "s_category": "AI",
+            "s_group": "AI",
+            "s_subgroup": "Language",
+            "s_icon": "language",
+            "s_description": "Uebersetzt einen Text mit einem LLM in eine Zielsprache.",
             "s_class_name": "node_tool",
             "a_input_handles": [
                 "input"
@@ -843,30 +458,1287 @@
             ],
             "a_fields": [
                 {
-                    "s_key": "s_level",
-                    "s_label": "Level",
+                    "s_key": "s_text",
+                    "s_label": "Text",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_source_language",
+                    "s_label": "Source Language",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": "auto"
+                },
+                {
+                    "s_key": "s_target_language",
+                    "s_label": "Target Language",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": "English"
+                },
+                {
+                    "s_key": "s_provider",
+                    "s_label": "Provider",
                     "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "openai",
                     "a_options": [
-                        {
-                            "s_label": "info",
-                            "s_value": "info"
-                        },
-                        {
-                            "s_label": "warn",
-                            "s_value": "warn"
-                        },
-                        {
-                            "s_label": "error",
-                            "s_value": "error"
-                        }
+                        "openai",
+                        "endpoint"
                     ]
                 },
                 {
-                    "s_key": "s_message",
-                    "s_label": "Message",
-                    "s_field_type": "textarea",
+                    "s_key": "s_model_name",
+                    "s_label": "Model Name",
+                    "s_field_type": "text",
                     "b_required": true,
                     "s_default": ""
+                },
+                {
+                    "s_key": "s_api_key",
+                    "s_label": "API Key",
+                    "s_field_type": "password",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_api_host",
+                    "s_label": "API Host",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 20000,
+                    "d_min": 1000,
+                    "d_max": 2000000
+                },
+                {
+                    "s_key": "max_completion_tokens",
+                    "s_label": "Max Completion Tokens",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 2000,
+                    "d_min": 100,
+                    "d_max": 16000
+                }
+            ]
+        },
+        {
+            "s_type": "tool_data_extractor",
+            "s_label": "Data Extractor",
+            "s_category": "AI",
+            "s_group": "AI",
+            "s_subgroup": "Extraction",
+            "s_icon": "schema",
+            "s_description": "Extrahiert Daten aus einem Text in ein vorgegebenes JSON.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_text",
+                    "s_label": "Text",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_json_template",
+                    "s_label": "JSON Template",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "{}"
+                },
+                {
+                    "s_key": "s_annotation",
+                    "s_label": "Annotation",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_provider",
+                    "s_label": "Provider",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "openai",
+                    "a_options": [
+                        "openai",
+                        "endpoint"
+                    ]
+                },
+                {
+                    "s_key": "s_model_name",
+                    "s_label": "Model Name",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_api_key",
+                    "s_label": "API Key",
+                    "s_field_type": "password",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_api_host",
+                    "s_label": "API Host",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 20000,
+                    "d_min": 1000,
+                    "d_max": 2000000
+                },
+                {
+                    "s_key": "max_completion_tokens",
+                    "s_label": "Max Completion Tokens",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 4000,
+                    "d_min": 100,
+                    "d_max": 32000
+                }
+            ]
+        },
+        {
+            "s_type": "tool_text_summarize",
+            "s_label": "Text Summarize",
+            "s_category": "AI",
+            "s_group": "AI",
+            "s_subgroup": "Text",
+            "s_icon": "article",
+            "s_description": "Fasst einen Text mit einem LLM zusammen.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_text",
+                    "s_label": "Text",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_summary_style",
+                    "s_label": "Summary Style",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "short",
+                    "a_options": [
+                        "short",
+                        "medium",
+                        "detailed",
+                        "bullet_points"
+                    ]
+                },
+                {
+                    "s_key": "s_provider",
+                    "s_label": "Provider",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "openai",
+                    "a_options": [
+                        "openai",
+                        "endpoint"
+                    ]
+                },
+                {
+                    "s_key": "s_model_name",
+                    "s_label": "Model Name",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_api_key",
+                    "s_label": "API Key",
+                    "s_field_type": "password",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_api_host",
+                    "s_label": "API Host",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 20000,
+                    "d_min": 1000,
+                    "d_max": 2000000
+                },
+                {
+                    "s_key": "max_completion_tokens",
+                    "s_label": "Max Completion Tokens",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 2000,
+                    "d_min": 100,
+                    "d_max": 16000
+                }
+            ]
+        },
+        {
+            "s_type": "tool_text_sentinize",
+            "s_label": "Text Sentinize",
+            "s_category": "AI",
+            "s_group": "AI",
+            "s_subgroup": "Text",
+            "s_icon": "mood",
+            "s_description": "Ermittelt die Stimmung eines Textes mit einem LLM.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_text",
+                    "s_label": "Text",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_provider",
+                    "s_label": "Provider",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "openai",
+                    "a_options": [
+                        "openai",
+                        "endpoint"
+                    ]
+                },
+                {
+                    "s_key": "s_model_name",
+                    "s_label": "Model Name",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_api_key",
+                    "s_label": "API Key",
+                    "s_field_type": "password",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_api_host",
+                    "s_label": "API Host",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 20000,
+                    "d_min": 1000,
+                    "d_max": 2000000
+                },
+                {
+                    "s_key": "max_completion_tokens",
+                    "s_label": "Max Completion Tokens",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 1500,
+                    "d_min": 100,
+                    "d_max": 8000
+                }
+            ]
+        },
+        {
+            "s_type": "tool_read_mongodb",
+            "s_label": "Read MongoDB",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MongoDB",
+            "s_icon": "storage",
+            "s_description": "Liest Daten sicher aus einer MongoDB.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_uri",
+                    "s_label": "Connection URI",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_database_name",
+                    "s_label": "Database",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_collection_name",
+                    "s_label": "Collection",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_filter_json",
+                    "s_label": "Filter JSON",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "{}"
+                },
+                {
+                    "s_key": "s_projection_json",
+                    "s_label": "Projection JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_sort_json",
+                    "s_label": "Sort JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_limit",
+                    "s_label": "Limit",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 100,
+                    "d_min": 1,
+                    "d_max": 10000
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10000,
+                    "d_min": 1000,
+                    "d_max": 600000
+                }
+            ]
+        },
+        {
+            "s_type": "tool_insert_mongodb",
+            "s_label": "Insert MongoDB",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MongoDB",
+            "s_icon": "add_circle",
+            "s_description": "Fuegt Daten sicher in eine MongoDB ein.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_uri",
+                    "s_label": "Connection URI",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_database_name",
+                    "s_label": "Database",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_collection_name",
+                    "s_label": "Collection",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_document_json",
+                    "s_label": "Document JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_documents_json",
+                    "s_label": "Documents JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10000,
+                    "d_min": 1000,
+                    "d_max": 600000
+                }
+            ]
+        },
+        {
+            "s_type": "tool_insert_mongodb",
+            "s_label": "Insert MongoDB",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MongoDB",
+            "s_icon": "add_circle",
+            "s_description": "Fuegt Daten sicher in eine MongoDB ein.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_uri",
+                    "s_label": "Connection URI",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_database_name",
+                    "s_label": "Database",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_collection_name",
+                    "s_label": "Collection",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_document_json",
+                    "s_label": "Document JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_documents_json",
+                    "s_label": "Documents JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10000,
+                    "d_min": 1000,
+                    "d_max": 600000
+                }
+            ]
+        },
+        {
+            "s_type": "tool_delete_mongodb",
+            "s_label": "Delete MongoDB",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MongoDB",
+            "s_icon": "delete",
+            "s_description": "Loescht Daten sicher aus einer MongoDB.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_uri",
+                    "s_label": "Connection URI",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_database_name",
+                    "s_label": "Database",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_collection_name",
+                    "s_label": "Collection",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_filter_json",
+                    "s_label": "Filter JSON",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "{}"
+                },
+                {
+                    "s_key": "b_delete_many",
+                    "s_label": "Delete Many",
+                    "s_field_type": "checkbox",
+                    "b_required": true,
+                    "d_default": false
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10000,
+                    "d_min": 1000,
+                    "d_max": 600000
+                }
+            ]
+        },
+        {
+            "s_type": "tool_read_mysql",
+            "s_label": "Read MySQL",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MySQL",
+            "s_icon": "database",
+            "s_description": "Liest Daten sicher aus einer MySQL Datenbank.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_host",
+                    "s_label": "Host",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_port",
+                    "s_label": "Port",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 3306,
+                    "d_min": 1,
+                    "d_max": 65535
+                },
+                {
+                    "s_key": "s_database_name",
+                    "s_label": "Database",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_username",
+                    "s_label": "Username",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_password",
+                    "s_label": "Password",
+                    "s_field_type": "password",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "SELECT 1"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_insert_mysql",
+            "s_label": "Insert MySQL",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MySQL",
+            "s_icon": "add_circle",
+            "s_description": "Schreibt neue Daten sicher in eine MySQL Datenbank.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_host",
+                    "s_label": "Host",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_port",
+                    "s_label": "Port",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 3306,
+                    "d_min": 1,
+                    "d_max": 65535
+                },
+                {
+                    "s_key": "s_database_name",
+                    "s_label": "Database",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_username",
+                    "s_label": "Username",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_password",
+                    "s_label": "Password",
+                    "s_field_type": "password",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "INSERT INTO table_name(column_name) VALUES(%s)"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_update_mysql",
+            "s_label": "Update MySQL",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MySQL",
+            "s_icon": "edit",
+            "s_description": "Aktualisiert Daten sicher in einer MySQL Datenbank.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_host",
+                    "s_label": "Host",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_port",
+                    "s_label": "Port",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 3306,
+                    "d_min": 1,
+                    "d_max": 65535
+                },
+                {
+                    "s_key": "s_database_name",
+                    "s_label": "Database",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_username",
+                    "s_label": "Username",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_password",
+                    "s_label": "Password",
+                    "s_field_type": "password",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "UPDATE table_name SET column_name = %s WHERE id = %s"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_delete_mysql",
+            "s_label": "Delete MySQL",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MySQL",
+            "s_icon": "delete",
+            "s_description": "Loescht Daten sicher aus einer MySQL Datenbank.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_host",
+                    "s_label": "Host",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_port",
+                    "s_label": "Port",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 3306,
+                    "d_min": 1,
+                    "d_max": 65535
+                },
+                {
+                    "s_key": "s_database_name",
+                    "s_label": "Database",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_username",
+                    "s_label": "Username",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_password",
+                    "s_label": "Password",
+                    "s_field_type": "password",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "DELETE FROM table_name WHERE id = %s"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_read_mssql",
+            "s_label": "Read MSSQL",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MSSQL",
+            "s_icon": "database",
+            "s_description": "Liest Daten sicher aus einer MSSQL Datenbank.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_string",
+                    "s_label": "Connection String",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "SELECT 1"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_insert_mssql",
+            "s_label": "Insert MSSQL",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MSSQL",
+            "s_icon": "add_circle",
+            "s_description": "Fuegt Daten sicher in eine MSSQL Datenbank ein.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_string",
+                    "s_label": "Connection String",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "INSERT INTO table_name(column_name) VALUES(?)"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_update_mssql",
+            "s_label": "Update MSSQL",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MSSQL",
+            "s_icon": "edit",
+            "s_description": "Aktualisiert Daten sicher in einer MSSQL Datenbank.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_string",
+                    "s_label": "Connection String",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "UPDATE table_name SET column_name = ? WHERE id = ?"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_delete_mssql",
+            "s_label": "Delete MSSQL",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "MSSQL",
+            "s_icon": "delete",
+            "s_description": "Loescht Daten sicher aus einer MSSQL Datenbank.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_string",
+                    "s_label": "Connection String",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "DELETE FROM table_name WHERE id = ?"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_read_odbc",
+            "s_label": "Read ODBC",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "ODBC",
+            "s_icon": "database",
+            "s_description": "Liest Daten sicher ueber eine ODBC Verbindung.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_string",
+                    "s_label": "Connection String",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "SELECT 1"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_insert_odbc",
+            "s_label": "Insert ODBC",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "ODBC",
+            "s_icon": "add_circle",
+            "s_description": "Fuegt Daten sicher ueber eine ODBC Verbindung ein.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_string",
+                    "s_label": "Connection String",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "INSERT INTO table_name(column_name) VALUES(?)"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_update_odbc",
+            "s_label": "Update ODBC",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "ODBC",
+            "s_icon": "edit",
+            "s_description": "Aktualisiert Daten sicher ueber eine ODBC Verbindung.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_string",
+                    "s_label": "Connection String",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "UPDATE table_name SET column_name = ? WHERE id = ?"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
+                }
+            ]
+        },
+        {
+            "s_type": "tool_delete_odbc",
+            "s_label": "Delete ODBC",
+            "s_category": "Database",
+            "s_group": "Database",
+            "s_subgroup": "ODBC",
+            "s_icon": "delete",
+            "s_description": "Loescht Daten sicher ueber eine ODBC Verbindung.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_connection_string",
+                    "s_label": "Connection String",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_query",
+                    "s_label": "Query",
+                    "s_field_type": "textarea",
+                    "b_required": true,
+                    "s_default": "DELETE FROM table_name WHERE id = ?"
+                },
+                {
+                    "s_key": "s_params_json",
+                    "s_label": "Params JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "[]"
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout Seconds",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 10,
+                    "d_min": 1,
+                    "d_max": 600
                 }
             ]
         },
@@ -1231,15 +2103,17 @@
             ]
         },
         {
-            "s_type": "variable_tool",
-            "s_label": "Variable Tool",
-            "s_category": "Utility",
-            "s_group": "Data",
-            "s_subgroup": "Variable",
-            "s_icon": "variable",
-            "s_description": "Erzeugt nur eine Variable als Output.",
+            "s_type": "tool_set_variable",
+            "s_label": "Set Variable",
+            "s_category": "System",
+            "s_group": "System",
+            "s_subgroup": "Variables",
+            "s_icon": "data_object",
+            "s_description": "Setzt einen Wert und gibt ihn strukturiert fuer weitere Nodes aus.",
             "s_class_name": "node_tool",
-            "a_input_handles": [],
+            "a_input_handles": [
+                "input"
+            ],
             "a_output_handles": [
                 "output"
             ],
@@ -1249,38 +2123,39 @@
                     "s_label": "Variable Name",
                     "s_field_type": "text",
                     "b_required": true,
-                    "s_default": ""
+                    "s_default": "variable_value"
                 },
                 {
-                    "s_key": "s_variable_type",
-                    "s_label": "Variable Type",
+                    "s_key": "s_value_type",
+                    "s_label": "Value Type",
                     "s_field_type": "select",
                     "b_required": true,
                     "s_default": "string",
                     "a_options": [
                         "string",
-                        "number",
+                        "integer",
+                        "double",
                         "boolean",
-                        "object",
-                        "array"
+                        "json"
                     ]
                 },
                 {
-                    "s_key": "s_variable_value",
-                    "s_label": "Variable Value",
+                    "s_key": "s_value",
+                    "s_label": "Value",
                     "s_field_type": "textarea",
+                    "b_required": false,
                     "s_default": ""
                 }
             ]
         },
         {
-            "s_type": "show_tool",
-            "s_label": "Show Tool",
-            "s_category": "Utility",
-            "s_group": "Output",
+            "s_type": "tool_show_variable",
+            "s_label": "Show Variable",
+            "s_category": "System",
+            "s_group": "System",
             "s_subgroup": "Display",
-            "s_icon": "eye",
-            "s_description": "Gibt einen Input aus.",
+            "s_icon": "visibility",
+            "s_description": "Zeigt einen Wert fuer Anzeige oder Debug Zwecke an.",
             "s_class_name": "node_tool",
             "a_input_handles": [
                 "input"
@@ -1293,18 +2168,99 @@
                     "s_key": "s_title",
                     "s_label": "Title",
                     "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": "Output"
+                },
+                {
+                    "s_key": "s_value",
+                    "s_label": "Value",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                }
+            ]
+        },
+        {
+            "s_type": "tool_log_write",
+            "s_label": "Log Write",
+            "s_category": "System",
+            "s_group": "System",
+            "s_subgroup": "Logging",
+            "s_icon": "receipt_long",
+            "s_description": "Schreibt einen Logeintrag in eine CSV Datei oder in eine SQLite Datenbank.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_target_type",
+                    "s_label": "Target Type",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "csv",
+                    "a_options": [
+                        "csv",
+                        "sqlite"
+                    ]
+                },
+                {
+                    "s_key": "s_log_file_path",
+                    "s_label": "Log File Path",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": "logfile.csv"
+                },
+                {
+                    "s_key": "s_db_path",
+                    "s_label": "Database Path",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": "logfile.db"
+                },
+                {
+                    "s_key": "s_db_table",
+                    "s_label": "Database Table",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": "workflow_logs"
+                },
+                {
+                    "s_key": "s_log_level",
+                    "s_label": "Log Level",
+                    "s_field_type": "select",
+                    "b_required": true,
+                    "s_default": "info",
+                    "a_options": [
+                        "debug",
+                        "info",
+                        "warning",
+                        "error"
+                    ]
+                },
+                {
+                    "s_key": "s_message",
+                    "s_label": "Message",
+                    "s_field_type": "textarea",
+                    "b_required": false,
                     "s_default": ""
                 },
                 {
-                    "s_key": "s_mode",
-                    "s_label": "Mode",
-                    "s_field_type": "select",
-                    "s_default": "text",
-                    "a_options": [
-                        "text",
-                        "json",
-                        "html"
-                    ]
+                    "s_key": "s_source",
+                    "s_label": "Source",
+                    "s_field_type": "text",
+                    "b_required": false,
+                    "s_default": "workflow"
+                },
+                {
+                    "s_key": "s_context_json",
+                    "s_label": "Context JSON",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": "{}"
                 }
             ]
         }
