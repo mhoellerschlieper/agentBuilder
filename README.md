@@ -372,6 +372,3 @@ This project is licensed under the MIT License. Source: document &ldquo;README P
 
 Marcus Schlieper  
  email: mschlieper@expchat.ai
-
-
-If desired, a **clean GitHub version without source references in the running text**, i.e., as a ready-to-use `README.md`, can also be created directly.
