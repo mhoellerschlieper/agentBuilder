@@ -483,137 +483,349 @@
             ]
         },
         {
-            "s_type": "tool_translate_text",
-            "s_label": "Translate Text",
-            "s_category": "Language",
-            "s_group": "AI",
-            "s_subgroup": "Language",
-            "s_icon": "languages",
-            "s_description": "Uebersetzt Text in eine Zielsprache.",
-            "s_class_name": "node_tool",
-            "a_input_handles": [
-                "input"
-            ],
-            "a_output_handles": [
-                "output"
-            ],
-            "a_fields": [
-                {
-                    "s_key": "s_text",
-                    "s_label": "Text",
-                    "s_field_type": "textarea",
-                    "b_required": true,
-                    "s_default": ""
-                },
-                {
-                    "s_key": "s_target_language",
-                    "s_label": "Target Language",
-                    "s_field_type": "text",
-                    "b_required": true,
-                    "s_default": "de"
-                }
-            ]
-        },
-        {
-            "s_type": "tool_text_summarize",
-            "s_label": "Text Summarize",
-            "s_category": "AI",
-            "s_group": "AI",
-            "s_subgroup": "Text",
-            "s_icon": "align-left",
-            "s_description": "Erstellt eine Zusammenfassung eines Textes.",
-            "s_class_name": "node_tool",
-            "a_input_handles": [
-                "input"
-            ],
-            "a_output_handles": [
-                "output"
-            ],
-            "a_fields": [
-                {
-                    "s_key": "s_text",
-                    "s_label": "Text",
-                    "s_field_type": "textarea",
-                    "b_required": true,
-                    "s_default": ""
-                },
-                {
-                    "s_key": "i_max_sentences",
-                    "s_label": "Max Sentences",
-                    "s_field_type": "number",
-                    "d_default": 5,
-                    "d_min": 1,
-                    "d_max": 20
-                }
-            ]
-        },
-        {
-            "s_type": "tool_sentiment_analyze",
-            "s_label": "Sentiment Analyze",
-            "s_category": "AI",
-            "s_group": "AI",
-            "s_subgroup": "Text",
-            "s_icon": "smile",
-            "s_description": "Analysiert die Stimmung eines Textes.",
-            "s_class_name": "node_tool",
-            "a_input_handles": [
-                "input"
-            ],
-            "a_output_handles": [
-                "output"
-            ],
-            "a_fields": [
-                {
-                    "s_key": "s_text",
-                    "s_label": "Text",
-                    "s_field_type": "textarea",
-                    "b_required": true,
-                    "s_default": ""
-                },
-                {
-                    "s_key": "s_result_variable",
-                    "s_label": "Result Variable",
-                    "s_field_type": "variable_select",
-                    "a_allowed_types": [
-                        "string",
-                        "object"
-                    ]
-                }
-            ]
-        },
-        {
-            "s_type": "tool_keyword_extract",
-            "s_label": "Keyword Extract",
-            "s_category": "AI",
-            "s_group": "AI",
-            "s_subgroup": "Text",
-            "s_icon": "key",
-            "s_description": "Extrahiert Schluesselbegriffe aus Texten.",
-            "s_class_name": "node_tool",
-            "a_input_handles": [
-                "input"
-            ],
-            "a_output_handles": [
-                "output"
-            ],
-            "a_fields": [
-                {
-                    "s_key": "s_text",
-                    "s_label": "Text",
-                    "s_field_type": "textarea",
-                    "b_required": true,
-                    "s_default": ""
-                },
-                {
-                    "s_key": "i_limit",
-                    "s_label": "Limit",
-                    "s_field_type": "number",
-                    "d_default": 10,
-                    "d_min": 1,
-                    "d_max": 50
-                }
-            ]
-        },
+  "s_type": "tool_translator",
+  "s_label": "Translator",
+  "s_category": "AI",
+  "s_group": "AI",
+  "s_subgroup": "Language",
+  "s_icon": "language",
+  "s_description": "Uebersetzt einen Text mit einem LLM in eine Zielsprache.",
+  "s_class_name": "node_tool",
+  "a_input_handles": [
+    "input"
+  ],
+  "a_output_handles": [
+    "output"
+  ],
+  "a_fields": [
+    {
+      "s_key": "s_text",
+      "s_label": "Text",
+      "s_field_type": "textarea",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_source_language",
+      "s_label": "Source Language",
+      "s_field_type": "text",
+      "b_required": false,
+      "s_default": "auto"
+    },
+    {
+      "s_key": "s_target_language",
+      "s_label": "Target Language",
+      "s_field_type": "text",
+      "b_required": true,
+      "s_default": "English"
+    },
+    {
+      "s_key": "s_provider",
+      "s_label": "Provider",
+      "s_field_type": "select",
+      "b_required": true,
+      "s_default": "openai",
+      "a_options": [
+        "openai",
+        "endpoint"
+      ]
+    },
+    {
+      "s_key": "s_model_name",
+      "s_label": "Model Name",
+      "s_field_type": "text",
+      "b_required": true,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_api_key",
+      "s_label": "API Key",
+      "s_field_type": "password",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_api_host",
+      "s_label": "API Host",
+      "s_field_type": "text",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "i_timeout",
+      "s_label": "Timeout",
+      "s_field_type": "number",
+      "b_required": true,
+      "d_default": 20000,
+      "d_min": 1000,
+      "d_max": 2000000
+    },
+    {
+      "s_key": "max_completion_tokens",
+      "s_label": "Max Completion Tokens",
+      "s_field_type": "number",
+      "b_required": true,
+      "d_default": 2000,
+      "d_min": 100,
+      "d_max": 16000
+    }
+
+  ]
+},
+{
+  "s_type": "tool_data_extractor",
+  "s_label": "Data Extractor",
+  "s_category": "AI",
+  "s_group": "AI",
+  "s_subgroup": "Extraction",
+  "s_icon": "schema",
+  "s_description": "Extrahiert Daten aus einem Text in ein vorgegebenes JSON.",
+  "s_class_name": "node_tool",
+  "a_input_handles": [
+    "input"
+  ],
+  "a_output_handles": [
+    "output"
+  ],
+  "a_fields": [
+    {
+      "s_key": "s_text",
+      "s_label": "Text",
+      "s_field_type": "textarea",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_json_template",
+      "s_label": "JSON Template",
+      "s_field_type": "textarea",
+      "b_required": true,
+      "s_default": "{}"
+    },
+    {
+      "s_key": "s_annotation",
+      "s_label": "Annotation",
+      "s_field_type": "textarea",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_provider",
+      "s_label": "Provider",
+      "s_field_type": "select",
+      "b_required": true,
+      "s_default": "openai",
+      "a_options": [
+        "openai",
+        "endpoint"
+      ]
+    },
+    {
+      "s_key": "s_model_name",
+      "s_label": "Model Name",
+      "s_field_type": "text",
+      "b_required": true,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_api_key",
+      "s_label": "API Key",
+      "s_field_type": "password",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_api_host",
+      "s_label": "API Host",
+      "s_field_type": "text",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "i_timeout",
+      "s_label": "Timeout",
+      "s_field_type": "number",
+      "b_required": true,
+      "d_default": 20000,
+      "d_min": 1000,
+      "d_max": 2000000
+    },
+    {
+      "s_key": "max_completion_tokens",
+      "s_label": "Max Completion Tokens",
+      "s_field_type": "number",
+      "b_required": true,
+      "d_default": 4000,
+      "d_min": 100,
+      "d_max": 32000
+    }
+  ]
+},
+{
+  "s_type": "tool_text_summarize",
+  "s_label": "Text Summarize",
+  "s_category": "AI",
+  "s_group": "AI",
+  "s_subgroup": "Text",
+  "s_icon": "article",
+  "s_description": "Fasst einen Text mit einem LLM zusammen.",
+  "s_class_name": "node_tool",
+  "a_input_handles": [
+    "input"
+  ],
+  "a_output_handles": [
+    "output"
+  ],
+  "a_fields": [
+    {
+      "s_key": "s_text",
+      "s_label": "Text",
+      "s_field_type": "textarea",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_summary_style",
+      "s_label": "Summary Style",
+      "s_field_type": "select",
+      "b_required": true,
+      "s_default": "short",
+      "a_options": [
+        "short",
+        "medium",
+        "detailed",
+        "bullet_points"
+      ]
+    },
+    {
+      "s_key": "s_provider",
+      "s_label": "Provider",
+      "s_field_type": "select",
+      "b_required": true,
+      "s_default": "openai",
+      "a_options": [
+        "openai",
+        "endpoint"
+      ]
+    },
+    {
+      "s_key": "s_model_name",
+      "s_label": "Model Name",
+      "s_field_type": "text",
+      "b_required": true,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_api_key",
+      "s_label": "API Key",
+      "s_field_type": "password",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_api_host",
+      "s_label": "API Host",
+      "s_field_type": "text",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "i_timeout",
+      "s_label": "Timeout",
+      "s_field_type": "number",
+      "b_required": true,
+      "d_default": 20000,
+      "d_min": 1000,
+      "d_max": 2000000
+    },
+    {
+      "s_key": "max_completion_tokens",
+      "s_label": "Max Completion Tokens",
+      "s_field_type": "number",
+      "b_required": true,
+      "d_default": 2000,
+      "d_min": 100,
+      "d_max": 16000
+    }
+  ]
+},
+{
+  "s_type": "tool_text_sentinize",
+  "s_label": "Text Sentinize",
+  "s_category": "AI",
+  "s_group": "AI",
+  "s_subgroup": "Text",
+  "s_icon": "mood",
+  "s_description": "Ermittelt die Stimmung eines Textes mit einem LLM.",
+  "s_class_name": "node_tool",
+  "a_input_handles": [
+    "input"
+  ],
+  "a_output_handles": [
+    "output"
+  ],
+  "a_fields": [
+    {
+      "s_key": "s_text",
+      "s_label": "Text",
+      "s_field_type": "textarea",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_provider",
+      "s_label": "Provider",
+      "s_field_type": "select",
+      "b_required": true,
+      "s_default": "openai",
+      "a_options": [
+        "openai",
+        "endpoint"
+      ]
+    },
+    {
+      "s_key": "s_model_name",
+      "s_label": "Model Name",
+      "s_field_type": "text",
+      "b_required": true,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_api_key",
+      "s_label": "API Key",
+      "s_field_type": "password",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "s_api_host",
+      "s_label": "API Host",
+      "s_field_type": "text",
+      "b_required": false,
+      "s_default": ""
+    },
+    {
+      "s_key": "i_timeout",
+      "s_label": "Timeout",
+      "s_field_type": "number",
+      "b_required": true,
+      "d_default": 20000,
+      "d_min": 1000,
+      "d_max": 2000000
+    },
+    {
+      "s_key": "max_completion_tokens",
+      "s_label": "Max Completion Tokens",
+      "s_field_type": "number",
+      "b_required": true,
+      "d_default": 1500,
+      "d_min": 100,
+      "d_max": 8000
+    }
+  ]
+},
+
+
         {
             "s_type": "tool_log_write",
             "s_label": "Log Write",

@@ -177,34 +177,37 @@
       "s_version": "1.0.0",
       "b_enabled": true
     },
-    {
-      "s_node_type": "tool_translate_text",
-      "s_module_path": "nodes.tool_translate_text.node_impl",
-      "s_class_name": "ToolTranslateText",
-      "s_version": "1.0.0",
-      "b_enabled": true
-    },
-    {
-      "s_node_type": "tool_text_summarize",
-      "s_module_path": "nodes.tool_text_summarize.node_impl",
-      "s_class_name": "ToolTextSummarize",
-      "s_version": "1.0.0",
-      "b_enabled": true
-    },
-    {
-      "s_node_type": "tool_sentiment_analyze",
-      "s_module_path": "nodes.tool_sentiment_analyze.node_impl",
-      "s_class_name": "ToolSentimentAnalyze",
-      "s_version": "1.0.0",
-      "b_enabled": true
-    },
-    {
-      "s_node_type": "tool_keyword_extract",
-      "s_module_path": "nodes.tool_keyword_extract.node_impl",
-      "s_class_name": "ToolKeywordExtract",
-      "s_version": "1.0.0",
-      "b_enabled": true
-    },
+ {
+  "s_node_type": "tool_translator",
+  "s_module_path": "nodes.tool_translator.node_impl",
+  "s_class_name": "ToolTranslatorNode",
+  "s_version": "1.0.0",
+  "b_enabled": true
+},
+{
+  "s_node_type": "tool_data_extractor",
+  "s_module_path": "nodes.tool_data_extractor.node_impl",
+  "s_class_name": "ToolDataExtractorNode",
+  "s_version": "1.0.0",
+  "b_enabled": true
+},
+
+   {
+  "s_node_type": "tool_text_summarize",
+  "s_module_path": "nodes.tool_text_summarize.node_impl",
+  "s_class_name": "ToolTextSummarizeNode",
+  "s_version": "1.0.0",
+  "b_enabled": true
+},
+
+{
+  "s_node_type": "tool_text_sentinize",
+  "s_module_path": "nodes.tool_text_sentinize.node_impl",
+  "s_class_name": "ToolTextSentinizeNode",
+  "s_version": "1.0.0",
+  "b_enabled": true
+},
+
     {
       "s_node_type": "tool_log_write",
       "s_module_path": "nodes.tool_log_write.node_impl",
