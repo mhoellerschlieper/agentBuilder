@@ -9,8 +9,6 @@ from typing import Any, Dict, List
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
-
 
 class StartNode(BaseNode):
     def get_node_type(self) -> str:
@@ -30,8 +28,7 @@ class StartNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         b_enable = bool(o_data.get("b_enable", True))
         if not b_enable:
             raise ValueError("start_node_disabled")

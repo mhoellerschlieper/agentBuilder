@@ -13,7 +13,6 @@ from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import (
     extract_primary_named_input,
-    replace_input_placeholders,
 )
 
 
@@ -41,8 +40,7 @@ class ToolTextSentinizeNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_text = self._extract_text_from_input(extract_primary_named_input(o_context.input_context), o_data)
         if s_text.strip() == "":
             raise ValueError("sentiment_text_required")
@@ -121,6 +119,7 @@ class ToolTextSentinizeNode(BaseNode):
         o_output = {
             "sentiment_label": s_sentiment_label,
             "results": s_sentiment_label,
+            "value": s_sentiment_label,
             "sentiment_score": d_sentiment_score,
             "reason": s_reason,
             "source_text": s_text,

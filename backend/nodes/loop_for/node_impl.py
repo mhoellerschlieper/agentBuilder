@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders, resolve_input_reference
+from services.node_runtime.node_utils import resolve_input_reference
 
 
 class LoopForNode(BaseNode):
@@ -23,8 +23,7 @@ class LoopForNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_source_array_variable = str(o_data.get("s_source_array_variable", "")).strip()
         s_item_variable = str(o_data.get("s_item_variable", "item")).strip() or "item"
         s_index_variable = str(o_data.get("s_index_variable", "index")).strip() or "index"
@@ -64,6 +63,7 @@ class LoopForNode(BaseNode):
                 "item_variable": s_item_variable,
                 "index_variable": s_index_variable,
                 "resolved_data": o_data,
+                "value": o_data,
                 "inputs_used": o_context.input_context,
             },
         }

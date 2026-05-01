@@ -8,7 +8,6 @@ from typing import Any, Dict, List
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
 
 
 class GroupNode(BaseNode):
@@ -23,8 +22,7 @@ class GroupNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         a_child_node_ids = o_data.get("child_node_ids", [])
         if not isinstance(a_child_node_ids, list):
             a_child_node_ids = []

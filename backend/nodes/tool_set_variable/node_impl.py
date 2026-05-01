@@ -10,8 +10,6 @@ from typing import Any, Dict, List
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
-
 
 class ToolSetVariableNode(BaseNode):
     def get_node_type(self) -> str:
@@ -37,8 +35,7 @@ class ToolSetVariableNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_variable_name = str(o_data.get("s_variable_name", "variable_value")).strip() or "variable_value"
         s_value_type = str(o_data.get("s_value_type", "string")).strip().lower() or "string"
         s_value = str(o_data.get("s_value", "")).strip()
@@ -65,6 +62,7 @@ class ToolSetVariableNode(BaseNode):
             "message": "tool_set_variable_ok",
             "output": o_output,
             "results": o_output,
+            "value": o_output,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "output",

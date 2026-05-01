@@ -11,7 +11,6 @@ from typing import Any, Dict, List
 from tools.LLM import llmTextGen
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
 
 
 class LlmNode(BaseNode):
@@ -32,7 +31,6 @@ class LlmNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
 
         s_model = str(o_data.get("s_model_name", "")).strip()
         s_api_key = str(o_data.get("s_api_key", "")).strip()
@@ -111,6 +109,7 @@ class LlmNode(BaseNode):
 
         o_main_output = {
             "results": s_response_text,
+            "value": s_response_text,
             "model": s_model,
             "provider": s_provider,
             "temperature": d_temperature,

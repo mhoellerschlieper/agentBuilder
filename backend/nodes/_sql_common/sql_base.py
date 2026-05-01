@@ -12,7 +12,7 @@ from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import (
     extract_primary_named_input,
-    replace_input_placeholders,
+   
 )
 
 
@@ -21,8 +21,8 @@ class SqlNodeBase(BaseNode):
     # - 2026-04-24: Gemeinsame SQL Execute Hilfen hinzugefuegt. author ChatGPT
 
     def _resolve_data(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
-        o_data = copy.deepcopy(o_context.node.get("data", {}))
-        return replace_input_placeholders(o_data, o_context.input_context)
+        return copy.deepcopy(o_context.node.get("data", {}))
+        
 
     def _parse_params_json(self, s_value: str) -> List[Any]:
         s_clean = str(s_value).strip()

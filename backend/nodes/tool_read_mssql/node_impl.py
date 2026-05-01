@@ -52,6 +52,7 @@ class ToolReadMssqlNode(SqlNodeBase):
 
             o_output = {
                 "rows": a_rows,
+                "value": a_rows,
                 "row_count": len(a_rows),
                 "query_used": s_query,
                 "params_used": a_params,

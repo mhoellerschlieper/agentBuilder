@@ -8,8 +8,6 @@ from typing import Any, Dict, List
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
-
 
 class LoopNode(BaseNode):
     def get_node_type(self) -> str:
@@ -23,8 +21,7 @@ class LoopNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         i_count = int(o_data.get("count", o_data.get("i_count", 0)) or 0)
         if i_count < 0 or i_count > 1000:
             raise ValueError("loop_count_out_of_range")

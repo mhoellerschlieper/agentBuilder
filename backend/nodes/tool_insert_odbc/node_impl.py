@@ -45,6 +45,7 @@ class ToolInsertOdbcNode(SqlNodeBase):
 
             o_output = {
                 "affected_rows": int(o_cursor.rowcount),
+                "value": int(o_cursor.rowcount),
                 "query_used": s_query,
                 "params_used": a_params,
                 "input_used": self._get_common_input_used(o_context),

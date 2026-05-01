@@ -15,7 +15,6 @@ from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import (
     extract_primary_named_input,
-    replace_input_placeholders,
     sanitize_handle_key,
 )
 
@@ -54,8 +53,7 @@ class ClassifierNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         a_classes = o_data.get("classes", [])
         if not isinstance(a_classes, list) or len(a_classes) == 0:
             raise ValueError("classifier_classes_required")
@@ -272,6 +270,7 @@ class ClassifierNode(BaseNode):
         return {
             "message": "classifier_node_ok",
             "output": o_main_output,
+            "value": o_main_output,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "result",

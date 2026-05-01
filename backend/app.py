@@ -8,7 +8,14 @@
 # - 2026-04-23: SocketIO Start in Main Guard verschoben, damit Websocket Events stabil registriert bleiben. author Marcus Schlieper
 # author Marcus Schlieper
 # venv aktivieren: .\.venv\Scripts\Activate.ps1
+#
+# Syntax:
 # {{input:input_main.results}}
+# {{output:output_main.result}}
+# {{node:http_1.output.output_main.body}}
+# {{node:llm_1.result.output.answer}}
+# {{global:customer_name}}
+# {{workflow:name}}
 
 from functools import wraps
 from pathlib import Path

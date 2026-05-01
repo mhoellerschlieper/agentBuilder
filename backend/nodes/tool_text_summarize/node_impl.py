@@ -13,7 +13,6 @@ from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import (
     extract_primary_named_input,
-    replace_input_placeholders,
 )
 
 
@@ -41,8 +40,7 @@ class ToolTextSummarizeNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_text = self._extract_text_from_input(extract_primary_named_input(o_context.input_context), o_data)
         if s_text.strip() == "":
             raise ValueError("summary_text_required")
@@ -107,6 +105,7 @@ class ToolTextSummarizeNode(BaseNode):
         o_output = {
             "summary_text": s_summary_text,
             "results": s_summary_text,
+            "value": s_summary_text,
             "summary_style": s_summary_style,
             "source_text": s_text,
             "llm_meta": {

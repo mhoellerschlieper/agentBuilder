@@ -11,8 +11,6 @@ from typing import Any, Dict, List, Optional
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
-
 
 class ToolScheduler(BaseNode):
     def get_node_type(self) -> str:
@@ -53,8 +51,7 @@ class ToolScheduler(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_mode = str(o_data.get("s_mode", "calculate_next_run")).strip().lower()
         s_start_at = str(o_data.get("s_start_at", "")).strip()
         s_last_run_at = str(o_data.get("s_last_run_at", "")).strip()
@@ -110,6 +107,7 @@ class ToolScheduler(BaseNode):
         return {
             "message": "node_tool_scheduler_ok",
             "output": o_main_output,
+            "value": o_main_output,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "schedule_result",

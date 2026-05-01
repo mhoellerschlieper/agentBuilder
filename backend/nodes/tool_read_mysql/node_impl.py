@@ -62,6 +62,7 @@ class ToolReadMysqlNode(SqlNodeBase):
 
             o_output = {
                 "rows": self._normalize_rows(list(a_rows)),
+                "value": self._normalize_rows(list(a_rows)),
                 "row_count": len(a_rows),
                 "database_name": s_database_name,
                 "query_used": s_query,

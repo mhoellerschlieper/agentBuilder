@@ -11,7 +11,6 @@ import requests
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import (
-    replace_input_placeholders,
     try_parse_json_string,
     validate_safe_outbound_url,
 )
@@ -33,7 +32,6 @@ class HttpNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
 
         s_url = str(o_data.get("url", o_data.get("s_api", ""))).strip()
         s_method = str(o_data.get("s_method", "GET")).strip().upper()
@@ -116,6 +114,7 @@ class HttpNode(BaseNode):
         return {
             "message": "http_node_ok",
             "output": o_response_payload,
+            "value": o_response_payload,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "response",

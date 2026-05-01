@@ -22,8 +22,6 @@ from bs4 import BeautifulSoup
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
-
 
 class ToolWebCrawler(BaseNode):
     def get_node_type(self) -> str:
@@ -128,8 +126,7 @@ class ToolWebCrawler(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         i_max_depth = self._safe_int(o_data.get("i_max_depth", 1), 1)
         i_max_pages = self._safe_int(o_data.get("i_max_pages", 5), 5)
         i_timeout = self._safe_int(o_data.get("i_timeout", 15000), 15000)
@@ -175,6 +172,7 @@ class ToolWebCrawler(BaseNode):
         return {
             "message": "node_web_crawler_ok",
             "output": o_main_output,
+            "value": o_main_output,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "crawl_result",

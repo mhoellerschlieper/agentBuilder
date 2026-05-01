@@ -64,6 +64,7 @@ class ToolInsertMysqlNode(SqlNodeBase):
 
             o_output = {
                 "affected_rows": i_row_count,
+                "value": i_row_count,
                 "last_insert_id": i_lastrowid,
                 "database_name": s_database_name,
                 "query_used": s_query,

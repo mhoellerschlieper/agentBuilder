@@ -1696,6 +1696,7 @@ useEffect(() => {
   central history:
   - 2026-04-22: Workflow start uses always mounted hidden runner panel. author Marcus Schlieper
   */
+    set_live_logs([]);
     if (b_is_starting_workflow) {
       return;
     }
@@ -2442,7 +2443,10 @@ useEffect(() => {
 
             {s_active_workspace_panel === "telemetry" && (
               <div
-                style={{ fontSize: "12px", color: "var(--color_text_muted)" }}
+                style={{ fontSize: "12px", color: "var(--color_text_muted)", overflowX: "auto",
+                        overflowY: "auto",
+                        whiteSpace: "pre", 
+                }}
               >
                 {a_live_logs.length === 0 ? (
                   <div>No live events</div>

@@ -1,5 +1,5 @@
 /* file: frontend/src/components/nodes/show_node.tsx
-description: Darstellung des End Nodes mit kompaktem Design,
+description: Darstellung des Show Nodes mit kompaktem Design,
 sichtbaren Handles und aufklappbaren Details.
 history:
 - 2026-03-25: Erstellt fuer xyflow End Node. author Marcus Schlieper
@@ -12,6 +12,7 @@ history:
 - 2026-04-07: Query Feld durch Result Feld ersetzt, damit branch spezifische Start Outputs direkt angezeigt werden koennen. author Marcus Schlieper
 - 2026-04-11: Details einklappbar gemacht und Header Icon ergaenzt. author Marcus Schlieper
 - 2026-04-13: Hover Infos und Runtime Werte an Handles integriert. author Marcus Schlieper
+- 2026-05-01: Preview und Runtime Anzeige fuer direkte Template Werte verbessert. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -34,9 +35,19 @@ import {
   RenderEventHandles,
   RenderNamedHandles,
   RenderRuntimeResult,
+  DirectRenderRuntimeResult
 } from "./node_runtime_helpers";
-
 import { BaseNodeStatusBadge } from "./base_node_status_badge";
+
+type TRecord = Record<string, unknown>;
+
+function get_preview_text(s_value: string): string {
+  const s_trimmed = typeof s_value === "string" ? s_value.trim() : "";
+  if (s_trimmed === "") {
+    return "No result";
+  }
+  return s_trimmed.length > 24 ? `${s_trimmed.slice(0, 24)}...` : s_trimmed;
+}
 
 export function ShowNode({ id, data }: NodeProps): JSX.Element {
   const { getNodes, getEdges } = useReactFlow();
@@ -46,14 +57,12 @@ export function ShowNode({ id, data }: NodeProps): JSX.Element {
   const o_data = (data as IShowNodeData) || ({} as IShowNodeData);
   const { update_node_data } = use_workflow_store();
 
-  const a_legacy_outputs = Array.isArray(
-    (o_data as Record<string, unknown>).outputs
-  )
-    ? ((o_data as Record<string, unknown>).outputs as unknown[]) || []
+  const a_legacy_outputs = Array.isArray((o_data as TRecord).outputs)
+    ? (((o_data as TRecord).outputs as unknown[]) || [])
     : [];
 
   const a_input_handles = get_safe_handle_definitions(
-    (o_data as Record<string, unknown>).input_handles,
+    (o_data as TRecord).input_handles,
     [
       {
         s_key: "input_main",
@@ -64,7 +73,7 @@ export function ShowNode({ id, data }: NodeProps): JSX.Element {
   );
 
   const a_output_handles = get_safe_handle_definitions(
-    (o_data as Record<string, unknown>).output_handles,
+    (o_data as TRecord).output_handles,
     [
       {
         s_key: "output_main",
@@ -78,59 +87,81 @@ export function ShowNode({ id, data }: NodeProps): JSX.Element {
     typeof o_data.b_success === "boolean" ? o_data.b_success : true;
 
   const s_result =
-    typeof (o_data as Record<string, unknown>).s_result === "string"
-      ? ((o_data as Record<string, unknown>).s_result as string)
+    typeof (o_data as TRecord).s_result === "string"
+      ? ((o_data as TRecord).s_result as string)
       : typeof o_data.s_query === "string"
       ? o_data.s_query
       : "{{input:input_main.value}}";
 
-  const s_preview =
-    s_result.trim() !== "" ? s_result.trim().slice(0, 24) : "No result";
+  const s_preview = get_preview_text(s_result);
 
   return (
     <div style={get_node_wrapper_style()}>
+      <NodeDeleteButton s_node_id={id} />
+
       <RenderNamedHandles
-        a_handles={a_input_handles}
+        a_handles={a_input_handles as THandleDefinition[]}
         s_type="target"
-        o_data={(o_data as Record) || {}}
-        s_node_id={id}
-        a_nodes={a_nodes}
-        a_edges={a_edges}
+        o_data={(o_data as TRecord) || {}}
       />
 
       <RenderNamedHandles
-        a_handles={a_output_handles}
+        a_handles={a_output_handles as THandleDefinition[]}
         s_type="source"
-        o_data={(o_data as Record) || {}}
-        s_node_id={id}
-        a_nodes={a_nodes}
-        a_edges={a_edges}
+        o_data={(o_data as TRecord) || {}}
       />
 
-      <RenderEventHandles o_data={(o_data as Record<string, unknown>) || {}} />
+      <RenderEventHandles o_data={(o_data as TRecord) || {}} />
 
       <div
         style={get_node_header_style(
-          "rgba(239, 68, 68, 0.16)",
-          "rgba(239, 68, 68, 0.30)"
+          "rgba(14, 165, 233, 0.16)",
+          "rgba(14, 165, 233, 0.28)"
         )}
       >
-        <NodeHeaderTitle s_kind="show" s_title="Show" s_subtitle={s_preview} />
-        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
-        <NodeDeleteButton node_id={id} />
+        <NodeHeaderTitle
+          s_kind="show"
+          s_title="Show"
+          s_subtitle={b_success ? "Frontend Ausgabe" : "Fehler Ausgabe"}
+        />
+        <BaseNodeStatusBadge
+          s_runtime_status={
+            typeof (o_data as TRecord).s_runtime_status === "string"
+              ? ((o_data as TRecord).s_runtime_status as string)
+              : "idle"
+          }
+          i_runtime_ms={
+            typeof (o_data as TRecord).i_runtime_ms === "number"
+              ? ((o_data as TRecord).i_runtime_ms as number)
+              : 0
+          }
+        />
       </div>
 
       <div style={get_node_body_style()}>
         <div style={get_meta_style()}>
-          {a_input_handles.length} inputs - {a_output_handles.length} outputs
+          {a_nodes.length} nodes - {a_edges.length} edges
         </div>
 
-        
-
-        <RenderRuntimeResult
-          o_data={(o_data as Record<string, unknown>) || {}}
+        <label style={get_label_style()}>Result Template</label>
+        <input
+          style={get_input_style()}
+          type="text"
+          value={s_result}
+          onChange={(o_event) => {
+            const s_next_value = o_event.target.value;
+            update_node_data(id, {
+              s_result: s_next_value,
+            });
+          }}
+          placeholder="{{input:input_main.results}}"
         />
+        <DirectRenderRuntimeResult o_data={(o_data as TRecord) || {}} />
       </div>
+
+      
     </div>
+
+    
   );
 }

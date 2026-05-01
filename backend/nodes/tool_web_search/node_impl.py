@@ -15,7 +15,6 @@ from html2text import html2text
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
 
 import playwright
 from playwright.sync_api import sync_playwright
@@ -39,8 +38,7 @@ class ToolWebSearch(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_query = str(o_data.get("s_query", "")).strip()
         i_limit = self._safe_int(o_data.get("i_limit", 5), 5)
         i_timeout = self._safe_int(o_data.get("i_timeout", 15000), 15000)
@@ -74,6 +72,7 @@ class ToolWebSearch(BaseNode):
             "query": s_query,
             "result_count": len(a_results),
             "results": a_results,
+            "value": a_results,
             "links": a_results,
             "resolved_data": o_data,
             "inputs_used": o_context.input_context,
@@ -82,14 +81,17 @@ class ToolWebSearch(BaseNode):
         return {
             "message": "node_web_search_ok",
             "output": o_main_output,
+            "value": a_results,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "results",
                 "node_outputs": {
                     "output_main": o_main_output,
+                    
                     "links": {
                         "query": s_query,
                         "links": a_results,
+                        
                         "result_count": len(a_results),
                     },
                 },

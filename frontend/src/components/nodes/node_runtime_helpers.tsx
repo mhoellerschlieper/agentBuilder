@@ -1,14 +1,15 @@
 /* file: frontend/src/components/nodes/node_runtime_helpers.tsx
 description: Gemeinsame Hilfen fuer Node Rendering von Handles, Labels,
 Runtime Ergebnissen und dem kompakten Node Design mit aufklappbaren Details.
-Erweitert um Hover Tooltips fuer Input und Output Knotenpunkte sowie
-leserliche Anzeige von Runtime Werten direkt an Handles.
+Erweitert um direkte Anzeige einzelner Show und End Result Werte statt des
+gesamten JSON Objekts, wenn ein einzelner Template Wert verwendet wird.
 history:
 - 2026-04-06: Erstellt fuer sichtbare Handle Labels und Runtime Ergebnisanzeige. author Marcus Schlieper
 - 2026-04-11: Kompaktes Design mit klappbaren Details und Node SVG Icons ergaenzt. author Marcus Schlieper
 - 2026-04-12: Default fuer Details auf zugeklappt gesetzt, Runtime Result einklappbar gemacht und Pfeil Darstellung verbessert. author Marcus Schlieper
 - 2026-04-12: Hover Infos fuer Input und Output Handles sowie Runtime Werte an Handles hinzugefuegt. author Marcus Schlieper
 - 2026-04-13: Runtime Werte fuer Inputs und Outputs robuster gemacht und leserliche Handle Badges ergaenzt. author Marcus Schlieper
+- 2026-05-01: Direkte Runtime Anzeige fuer Show und End Result Templates verbessert. author Marcus Schlieper
 author Marcus Schlieper
 */
 
@@ -18,7 +19,6 @@ import {
   get_input_handle_style,
   get_output_handle_style,
 } from "./node_handle_styles";
-
 import { BaseNodeStatusBadge } from "./base_node_status_badge";
 
 type TRecord = Record<string, unknown>;
@@ -138,7 +138,6 @@ export function get_safe_handle_definitions(
       typeof o_handle.s_key === "string" && o_handle.s_key.trim() !== ""
         ? o_handle.s_key.trim()
         : "";
-
     const s_safe_label =
       typeof o_handle.s_label === "string" && o_handle.s_label.trim() !== ""
         ? o_handle.s_label.trim()
@@ -167,18 +166,15 @@ export function get_runtime_result(o_data: TRecord): unknown {
   if (typeof o_data.result !== "undefined" && o_data.result !== null) {
     return o_data.result;
   }
-
   if (typeof o_data.o_result !== "undefined" && o_data.o_result !== null) {
     return o_data.o_result;
   }
-
   if (
     typeof o_data.runtime_result !== "undefined" &&
     o_data.runtime_result !== null
   ) {
     return o_data.runtime_result;
   }
-
   return null;
 }
 
@@ -207,11 +203,9 @@ function stringify_safe(o_value: unknown): string {
   if (o_value === null || typeof o_value === "undefined") {
     return "No value";
   }
-
   if (typeof o_value === "string") {
     return o_value;
   }
-
   if (
     typeof o_value === "number" ||
     typeof o_value === "boolean" ||
@@ -219,7 +213,6 @@ function stringify_safe(o_value: unknown): string {
   ) {
     return String(o_value);
   }
-
   try {
     return JSON.stringify(o_value, null, 2);
   } catch (_o_exc) {
@@ -229,18 +222,107 @@ function stringify_safe(o_value: unknown): string {
 
 function get_short_runtime_text(o_value: unknown): string {
   const s_text = stringify_safe(o_value).trim();
-
   if (s_text === "" || s_text === "No value") {
     return "";
   }
-
   const s_single_line = s_text.replace(/\s+/g, " ").trim();
-
   if (s_single_line.length <= 64) {
     return s_single_line;
   }
-
   return s_single_line.slice(0, 61) + "...";
+}
+
+function is_direct_template_expression(s_value: string): boolean {
+  const s_trimmed = typeof s_value === "string" ? s_value.trim() : "";
+  return /^\{\{[^{}]+\}\}$/.test(s_trimmed);
+}
+
+function extract_direct_template_expression(s_value: string): string {
+  const s_trimmed = typeof s_value === "string" ? s_value.trim() : "";
+  if (!is_direct_template_expression(s_trimmed)) {
+    return "";
+  }
+  return s_trimmed.slice(2, -2).trim();
+}
+
+function get_direct_result_value_from_template(
+  o_result: unknown,
+  s_template: string,
+): unknown {
+  if (!o_result || typeof o_result !== "object") {
+    return undefined;
+  }
+
+  const s_expression = extract_direct_template_expression(s_template);
+  if (s_expression === "") {
+    return undefined;
+  }
+
+  const i_separator = s_expression.indexOf(":");
+  if (i_separator <= 0) {
+    return undefined;
+  }
+
+  const s_scope = s_expression.slice(0, i_separator).trim();
+  const s_body = s_expression.slice(i_separator + 1).trim();
+
+  if (s_scope === "input") {
+    if (s_body === "") {
+      return undefined;
+    }
+
+    const a_parts = s_body.split(".");
+    const s_handle_key = a_parts[0]?.trim() || "";
+    const a_rest_path = a_parts.slice(1).filter((s_item) => s_item.trim() !== "");
+
+    const o_inputs = get_nested_value(o_result, ["inputs"]);
+    if (o_inputs && typeof o_inputs === "object") {
+      const o_handle_value = (o_inputs as TRecord)[s_handle_key];
+      if (typeof o_handle_value !== "undefined") {
+        if (a_rest_path.length === 0) {
+          return o_handle_value;
+        }
+        return get_nested_value(o_handle_value, a_rest_path);
+      }
+    }
+
+    const o_named_inputs = get_nested_value(o_result, ["named_inputs"]);
+    if (o_named_inputs && typeof o_named_inputs === "object") {
+      const o_handle_value = (o_named_inputs as TRecord)[s_handle_key];
+      if (typeof o_handle_value !== "undefined") {
+        if (a_rest_path.length === 0) {
+          return o_handle_value;
+        }
+        return get_nested_value(o_handle_value, a_rest_path);
+      }
+    }
+
+    return undefined;
+  }
+
+  if (s_scope === "output") {
+    const o_output = get_nested_value(o_result, ["output"]);
+    if (!o_output || typeof o_output !== "object") {
+      return undefined;
+    }
+
+    if (s_body === "output_main" || s_body === "") {
+      return o_output;
+    }
+
+    const a_parts = s_body.split(".");
+    if (a_parts[0] === "output_main") {
+      const a_rest_path = a_parts.slice(1).filter((s_item) => s_item.trim() !== "");
+      if (a_rest_path.length === 0) {
+        return o_output;
+      }
+      return get_nested_value(o_output, a_rest_path);
+    }
+
+    return get_nested_value(o_output, a_parts);
+  }
+
+  return undefined;
 }
 
 export function get_handle_runtime_value(
@@ -315,26 +397,20 @@ function collect_template_paths(
   if (i_depth > 4) {
     return;
   }
-
   if (o_value === null || typeof o_value === "undefined") {
     return;
   }
-
   if (Array.isArray(o_value)) {
     if (o_value.length === 0) {
       return;
     }
-
     a_result.push(s_prefix);
-
     const o_first_item = o_value[0];
     if (o_first_item && typeof o_first_item === "object") {
       collect_template_paths(o_first_item, s_prefix + "[0]", a_result, i_depth + 1);
     }
-
     return;
   }
-
   if (typeof o_value !== "object") {
     a_result.push(s_prefix);
     return;
@@ -363,12 +439,11 @@ function get_available_variable_suggestions(
 
   const a_result: string[] = [];
   const s_base = "{{" + (s_type === "source" ? "output" : "input") + ":" + s_handle_key;
-
   a_result.push(s_base + "}}");
 
   const a_candidates: unknown[] = [];
-
   const o_runtime_result = get_runtime_result(o_data);
+
   if (o_runtime_result && typeof o_runtime_result === "object") {
     a_candidates.push(o_runtime_result);
 
@@ -384,9 +459,9 @@ function get_available_variable_suggestions(
   }
 
   if (s_type === "source") {
-    a_candidates.push((o_data.output_values as unknown));
+    a_candidates.push(o_data.output_values as unknown);
   } else {
-    a_candidates.push((o_data.input_values as unknown));
+    a_candidates.push(o_data.input_values as unknown);
     a_candidates.push(o_data[s_handle_key]);
   }
 
@@ -395,11 +470,7 @@ function get_available_variable_suggestions(
       continue;
     }
 
-    const o_direct_value =
-      s_type === "source"
-        ? (o_candidate as TRecord)[s_handle_key]
-        : (o_candidate as TRecord)[s_handle_key];
-
+    const o_direct_value = (o_candidate as TRecord)[s_handle_key];
     if (typeof o_direct_value !== "undefined") {
       collect_template_paths(
         o_direct_value,
@@ -432,7 +503,6 @@ function get_handle_hover_text(
     typeof o_handle.s_description === "string" && o_handle.s_description.trim() !== ""
       ? o_handle.s_description.trim()
       : "";
-
   const s_runtime_value = get_handle_runtime_value(o_data, s_type, s_handle_key);
   const a_variable_suggestions = get_available_variable_suggestions(
     o_data,
@@ -447,11 +517,9 @@ function get_handle_hover_text(
   if (s_description !== "") {
     a_lines.push("Info: " + s_description);
   }
-
   if (s_runtime_value !== "") {
     a_lines.push("Value: " + s_runtime_value);
   }
-
   if (a_variable_suggestions.length > 0) {
     a_lines.push("Templates:");
     for (const s_item of a_variable_suggestions) {
@@ -484,6 +552,42 @@ export function get_runtime_result_text(o_result: unknown): string {
   }
 
   return stringify_safe(o_result);
+}
+
+function get_runtime_result_text_for_node(o_data: TRecord): string {
+  const o_result = get_runtime_result(o_data);
+  if (o_result === null || typeof o_result === "undefined") {
+    return "No result";
+  }
+
+  const s_result_template =
+    typeof o_data.s_result === "string"
+      ? o_data.s_result
+      : typeof o_data.result === "string"
+      ? o_data.result
+      : typeof o_data.s_query === "string"
+      ? o_data.s_query
+      : "";
+
+  const s_node_type =
+    typeof o_data.s_node_type === "string"
+      ? o_data.s_node_type.trim().toLowerCase()
+      : "";
+
+  if (
+    (s_node_type === "show" || s_node_type === "end" || s_result_template !== "") &&
+    is_direct_template_expression(s_result_template)
+  ) {
+    const o_direct_value = get_direct_result_value_from_template(
+      o_result,
+      s_result_template,
+    );
+    if (typeof o_direct_value !== "undefined" && o_direct_value !== null) {
+      return stringify_safe(o_direct_value);
+    }
+  }
+
+  return get_runtime_result_text(o_result);
 }
 
 export function get_node_wrapper_style(): React.CSSProperties {
@@ -598,8 +702,6 @@ export function get_runtime_pre_style(): React.CSSProperties {
     fontSize: "12px",
     lineHeight: 1.45,
     color: "#0f172a",
-    //whiteSpace: "pre-wrap",
-    //wordBreak: "break-word",
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
     maxHeight: "220px",
     maxWidth: "100%",
@@ -696,7 +798,6 @@ export function get_visible_event_handles(
   o_data: TRecord,
 ): TEventHandleDefinition[] {
   const o_flags = get_safe_event_handle_flags(o_data);
-
   return a_default_event_handles.filter((o_item) => {
     if (o_item.s_key === "on_begin") {
       return o_flags.b_show_on_begin === true;
@@ -718,7 +819,6 @@ export function get_visible_action_handles(
   o_data: TRecord,
 ): TActionHandleDefinition[] {
   const o_flags = get_safe_action_handle_flags(o_data);
-
   return a_default_action_handles.filter((o_item) => {
     if (o_item.s_key === "use_tool") {
       return o_flags.b_show_use_tool === true;
@@ -929,7 +1029,6 @@ export function get_node_icon_wrap_style(
   s_kind: TNodeKind,
 ): React.CSSProperties {
   const o_palette = get_node_palette(s_kind);
-
   return {
     width: "34px",
     height: "34px",
@@ -958,7 +1057,6 @@ export function get_node_palette(
       s_fill: "#d1fae5",
     };
   }
-
   if (s_kind === "end") {
     return {
       s_bg: "rgba(239, 68, 68, 0.16)",
@@ -967,7 +1065,6 @@ export function get_node_palette(
       s_fill: "#fee2e2",
     };
   }
-
   if (s_kind === "llm") {
     return {
       s_bg: "rgba(139, 92, 246, 0.18)",
@@ -976,7 +1073,6 @@ export function get_node_palette(
       s_fill: "#ede9fe",
     };
   }
-
   if (s_kind === "classifier") {
     return {
       s_bg: "rgba(168, 85, 247, 0.18)",
@@ -985,7 +1081,6 @@ export function get_node_palette(
       s_fill: "#f3e8ff",
     };
   }
-
   if (s_kind === "http") {
     return {
       s_bg: "rgba(59, 130, 246, 0.18)",
@@ -994,7 +1089,6 @@ export function get_node_palette(
       s_fill: "#dbeafe",
     };
   }
-
   if (s_kind === "code") {
     return {
       s_bg: "rgba(15, 23, 42, 0.16)",
@@ -1003,7 +1097,6 @@ export function get_node_palette(
       s_fill: "#e2e8f0",
     };
   }
-
   if (s_kind === "condition") {
     return {
       s_bg: "rgba(245, 158, 11, 0.18)",
@@ -1012,7 +1105,6 @@ export function get_node_palette(
       s_fill: "#fef3c7",
     };
   }
-
   if (s_kind === "switch") {
     return {
       s_bg: "rgba(249, 115, 22, 0.18)",
@@ -1021,7 +1113,6 @@ export function get_node_palette(
       s_fill: "#ffedd5",
     };
   }
-
   if (s_kind === "loop") {
     return {
       s_bg: "rgba(20, 184, 166, 0.18)",
@@ -1030,7 +1121,6 @@ export function get_node_palette(
       s_fill: "#ccfbf1",
     };
   }
-
   if (s_kind === "group") {
     return {
       s_bg: "rgba(99, 102, 241, 0.18)",
@@ -1039,7 +1129,6 @@ export function get_node_palette(
       s_fill: "#e0e7ff",
     };
   }
-
   if (s_kind === "comment") {
     return {
       s_bg: "rgba(234, 179, 8, 0.18)",
@@ -1048,7 +1137,6 @@ export function get_node_palette(
       s_fill: "#fef9c3",
     };
   }
-
   return {
     s_bg: "rgba(37, 99, 235, 0.18)",
     s_border: "rgba(37, 99, 235, 0.34)",
@@ -1064,7 +1152,6 @@ export function NodeTypeIcon(
 ): JSX.Element {
   const { s_kind } = o_props;
   const o_palette = get_node_palette(s_kind);
-
   const o_common = {
     stroke: o_palette.s_stroke,
     fill: "none",
@@ -1078,98 +1165,73 @@ export function NodeTypeIcon(
       <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
         {s_kind === "start" && (
           <>
-            <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />
-            <path d="M10 9.5L15 12L10 14.5V9.5Z" {...o_common} fill={o_palette.s_stroke} />
+            <circle cx="12" cy="12" r="6" {...o_common} />
           </>
         )}
-
         {s_kind === "end" && (
           <>
-            <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />
-            <path d="M9 9L15 15" {...o_common} />
-            <path d="M15 9L9 15" {...o_common} />
+            <circle cx="12" cy="12" r="7" {...o_common} />
+            <circle cx="12" cy="12" r="3" fill={o_palette.s_fill} stroke="none" />
           </>
         )}
-
         {s_kind === "show" && (
           <>
-            <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />
-            <path d="M9 9L15 15" {...o_common} />
-            <path d="M15 9L9 15" {...o_common} />
+            <rect x="4" y="6" width="16" height="12" rx="2" {...o_common} />
+            <path d="M8 10h8M8 14h5" {...o_common} />
           </>
         )}
-
         {s_kind === "http" && (
           <>
-            <path d="M4 12H20" {...o_common} />
-            <path d="M14 6L20 12L14 18" {...o_common} />
-            <path d="M10 6L4 12L10 18" {...o_common} />
+            <path d="M7 8h10M7 12h10M7 16h6" {...o_common} />
           </>
         )}
-
         {s_kind === "code" && (
           <>
-            <path d="M9 8L5 12L9 16" {...o_common} />
-            <path d="M15 8L19 12L15 16" {...o_common} />
-            <path d="M13 6L11 18" {...o_common} />
+            <path d="M9 8L5 12l4 4M15 8l4 4-4 4" {...o_common} />
           </>
         )}
-
         {s_kind === "condition" && (
           <>
-            <path d="M12 4L20 12L12 20L4 12L12 4Z" {...o_common} fill={o_palette.s_fill} />
-            <path d="M9.5 12H14.5" {...o_common} />
+            <path d="M12 4l8 8-8 8-8-8 8-8z" {...o_common} />
           </>
         )}
-
         {s_kind === "switch" && (
           <>
-            <path d="M7 6H17" {...o_common} />
-            <path d="M7 12H13" {...o_common} />
-            <path d="M7 18H17" {...o_common} />
-            <circle cx="15" cy="12" r="2" {...o_common} fill={o_palette.s_fill} />
+            <path d="M7 7h10M7 12h6M7 17h10" {...o_common} />
+            <circle cx="16" cy="12" r="1.5" fill={o_palette.s_stroke} stroke="none" />
           </>
         )}
-
         {s_kind === "loop" && (
           <>
-            <path d="M7 8A7 7 0 1 1 6 15" {...o_common} />
-            <path d="M6 10V15H11" {...o_common} />
+            <path d="M8 8h8v8" {...o_common} />
+            <path d="M16 8l-2 2M16 8l2 2" {...o_common} />
+            <path d="M8 16l2-2M8 16l-2-2" {...o_common} />
           </>
         )}
-
         {s_kind === "llm" && (
           <>
-            <path d="M6 8.5C6 6.567 7.567 5 9.5 5H14.5C16.433 5 18 6.567 18 8.5V13.5C18 15.433 16.433 17 14.5 17H10L6 20V8.5Z" {...o_common} fill={o_palette.s_fill} />
-            <circle cx="10" cy="11" r="1" fill={o_palette.s_stroke} />
-            <circle cx="14" cy="11" r="1" fill={o_palette.s_stroke} />
+            <rect x="5" y="5" width="14" height="14" rx="4" {...o_common} />
+            <path d="M9 10h6M9 14h4" {...o_common} />
           </>
         )}
-
         {s_kind === "classifier" && (
           <>
-            <path d="M6 6H18V10H6V6Z" {...o_common} fill={o_palette.s_fill} />
-            <path d="M6 14H11V18H6V14Z" {...o_common} fill={o_palette.s_fill} />
-            <path d="M13 14H18V18H13V14Z" {...o_common} fill={o_palette.s_fill} />
+            <rect x="5" y="5" width="14" height="14" rx="3" {...o_common} />
+            <path d="M8 9h8M8 12h5M8 15h3" {...o_common} />
           </>
         )}
-
         {s_kind === "group" && (
           <>
-            <rect x="4" y="5" width="16" height="14" rx="2.5" {...o_common} fill={o_palette.s_fill} />
-            <path d="M8 9H16" {...o_common} />
-            <path d="M8 13H13" {...o_common} />
+            <rect x="4" y="4" width="16" height="16" rx="3" {...o_common} />
+            <rect x="7" y="7" width="4" height="4" rx="1" {...o_common} />
+            <rect x="13" y="13" width="4" height="4" rx="1" {...o_common} />
           </>
         )}
-
         {s_kind === "comment" && (
           <>
-            <path d="M5 7.5C5 6.119 6.119 5 7.5 5H16.5C17.881 5 19 6.119 19 7.5V13.5C19 14.881 17.881 16 16.5 16H10L6 19V7.5Z" {...o_common} fill={o_palette.s_fill} />
-            <path d="M8 9H16" {...o_common} />
-            <path d="M8 12H13" {...o_common} />
+            <path d="M6 7h12v8H9l-3 3V7z" {...o_common} />
           </>
         )}
-
         {![
           "start",
           "end",
@@ -1184,7 +1246,7 @@ export function NodeTypeIcon(
           "group",
           "comment",
         ].includes(s_kind) && (
-          <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />
+          <circle cx="12" cy="12" r="6" {...o_common} />
         )}
       </svg>
     </div>
@@ -1226,30 +1288,14 @@ export function NodeDetailsSection(
     >
       <summary style={get_collapsible_summary_style()}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-          <span
-            style={{
-              display: "inline-flex",
-              width: "16px",
-              height: "16px",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#64748b",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true">
-              <path
-                d="M6 8L10 12L14 8"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+          <span aria-hidden="true">
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M2 3l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" />
             </svg>
           </span>
           <span>{o_props.s_title}</span>
         </span>
-        <span style={get_meta_style()}>{o_props.s_meta || "show"}</span>
+        <span>{o_props.s_meta || "show"}</span>
       </summary>
       <div style={get_collapsible_body_style()}>
         {o_props.children}
@@ -1290,7 +1336,7 @@ export function RenderNamedHandles(
         );
 
         return (
-          <React.Fragment key={s_type + "_" + s_handle_key}>
+          <React.Fragment key={`${s_type}_${s_handle_key}_${i_index}`}>
             <Handle
               id={s_handle_key}
               type={s_type}
@@ -1299,23 +1345,16 @@ export function RenderNamedHandles(
                 ...o_handle_style,
                 top: d_top,
               }}
-              title={s_hover_text}
             />
             <div
+              style={get_handle_label_style(s_position as "left" | "right", d_top)}
               title={s_hover_text}
-              style={get_handle_label_style(
-                s_position as "left" | "right",
-                d_top,
-              )}
             >
               {s_handle_label}
             </div>
             {s_runtime_value !== "" ? (
               <div
-                style={get_handle_value_style(
-                  s_position as "left" | "right",
-                  d_top,
-                )}
+                style={get_handle_value_style(s_position as "left" | "right", d_top)}
                 title={s_hover_text}
               >
                 {s_runtime_value}
@@ -1346,13 +1385,12 @@ export function RenderEventHandles(
         const s_left = get_event_handle_left_by_index(i_index, a_visible_handles.length);
 
         return (
-          <React.Fragment key={o_item.s_key}>
+          <React.Fragment key={`event_${o_item.s_key}_${i_index}`}>
             <Handle
               id={o_item.s_key}
               type="source"
               position={Position.Bottom}
               style={get_event_handle_style(s_left)}
-              title={"Event: " + o_item.s_label}
             />
             <div style={get_event_handle_label_style(s_left)}>
               {o_item.s_label}
@@ -1382,13 +1420,12 @@ export function RenderActionHandles(
         const s_left = get_event_handle_left_by_index(i_index, a_visible_handles.length);
 
         return (
-          <React.Fragment key={o_item.s_key}>
+          <React.Fragment key={`action_${o_item.s_key}_${i_index}`}>
             <Handle
               id={o_item.s_key}
               type="target"
               position={Position.Top}
               style={get_action_handle_style(s_left)}
-              title={"Action: " + o_item.s_label}
             />
             <div style={get_action_handle_label_style(s_left)}>
               {o_item.s_label}
@@ -1408,24 +1445,46 @@ export function RenderRuntimeResult(
   const o_data = o_props.o_data || {};
   const o_result = get_runtime_result(o_data);
 
-  console.log("o_data", o_data);
-  console.log("o_result", o_result);
   if (o_result === null || typeof o_result === "undefined") {
     return null;
   }
 
   return (
     <NodeDetailsSection
-      s_title="Runtime Result"
-      s_meta="result"
+      s_title="Result"
+      s_meta="runtime"
       b_default_open={false}
     >
       <div style={get_runtime_box_style()}>
         <p style={get_runtime_title_style()}>Result</p>
         <pre style={get_runtime_pre_style()}>
-          {get_runtime_result_text(o_result)}
+          {get_runtime_result_text_for_node(o_data)}
         </pre>
       </div>
     </NodeDetailsSection>
+  );
+}
+
+export function DirectRenderRuntimeResult(
+  o_props: {
+    o_data?: TRecord;
+  },
+): JSX.Element | null {
+  const o_data = o_props.o_data || {};
+  const o_result = get_runtime_result(o_data);
+
+  if (o_result === null || typeof o_result === "undefined") {
+    return null;
+  }
+
+  return (
+   
+      <div style={get_runtime_box_style()}>
+        <p style={get_runtime_title_style()}>Result</p>
+        <pre style={get_runtime_pre_style()}>
+          {get_runtime_result_text_for_node(o_data)}
+        </pre>
+      </div>
+   
   );
 }

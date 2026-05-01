@@ -8,8 +8,6 @@ from typing import Any, Dict, List
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
-
 
 class CodeNode(BaseNode):
     def get_node_type(self) -> str:
@@ -29,8 +27,7 @@ class CodeNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_python_code = str(o_data.get("s_python_code", "")).strip()
         if len(s_python_code) > 20000:
             raise ValueError("code_too_large")
@@ -86,6 +83,7 @@ class CodeNode(BaseNode):
         return {
             "message": "code_node_simulated",
             "output": o_simulated_result,
+            "value": o_simulated_result,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "result",

@@ -13,7 +13,6 @@ from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import (
     extract_primary_named_input,
-    replace_input_placeholders,
 )
 
 
@@ -41,8 +40,7 @@ class ToolTranslatorNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_target_language = str(o_data.get("s_target_language", "")).strip()
         if s_target_language == "":
             raise ValueError("target_language_required")
@@ -115,6 +113,7 @@ class ToolTranslatorNode(BaseNode):
         o_output = {
             "translated_text": s_translated_text,
             "results": s_translated_text,
+            "value": s_translated_text,
             "target_language": s_target_language,
             "source_language": s_source_language,
             "detected_source_language": s_detected_source_language,

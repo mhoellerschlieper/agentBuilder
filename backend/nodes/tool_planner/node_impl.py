@@ -10,8 +10,6 @@ from typing import Any, Dict, List
 from tools.LLM import llmTextGen
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import replace_input_placeholders
-
 
 DEFAULT_TASK_CREATOR_PROMPT_WITH_TOOLS = """
 You are an task creation AI and creates tasks that uses the result of an execution agent
@@ -65,8 +63,7 @@ class NodePlannerNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_model_name = str(o_data.get("s_model_name", "")).strip()
         s_api_key = str(o_data.get("s_api_key", "")).strip()
         s_api_host = str(o_data.get("s_api_host", "")).strip()
@@ -165,6 +162,7 @@ class NodePlannerNode(BaseNode):
         return {
             "message": "node_planner_ok",
             "output": o_main_output,
+            "value": o_main_output,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "plan",

@@ -3,6 +3,7 @@
 # history:
 # - 2026-04-24: Erste Version fuer tool_data_extractor erstellt. author Marcus Schlieper
 # - 2026-04-24: Annotationen, Nebenbedingungen und sichere JSON Verarbeitung ergaenzt. author ChatGPT
+# - 2026-05-01: Vorbereitung fuer zentrale Template Syntax Aufloesung im Workflow Runner. author Marcus Schlieper
 
 import copy
 import json
@@ -11,10 +12,7 @@ from typing import Any, Dict, List
 from tools.LLM import llmTextGen
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
-from services.node_runtime.node_utils import (
-    extract_primary_named_input,
-    replace_input_placeholders,
-)
+from services.node_runtime.node_utils import extract_primary_named_input
 
 
 class ToolDataExtractorNode(BaseNode):
@@ -40,10 +38,14 @@ class ToolDataExtractorNode(BaseNode):
         ]
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
+        # Hinweis:
+        # Die neue Template Syntax wird zentral im Workflow Runner aufgeloest.
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
 
-        s_text = self._extract_text_from_input(extract_primary_named_input(o_context.input_context), o_data)
+        s_text = self._extract_text_from_input(
+            extract_primary_named_input(o_context.input_context),
+            o_data,
+        )
         if s_text.strip() == "":
             raise ValueError("extractor_text_required")
 
@@ -142,6 +144,7 @@ class ToolDataExtractorNode(BaseNode):
         return {
             "message": "tool_data_extractor_ok",
             "output": o_output,
+            "value": o_output,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "output",

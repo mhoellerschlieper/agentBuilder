@@ -17,6 +17,7 @@
 # - 2026-04-18: Mehrere aktive Output-Handles fuer switch und classifier Routing ergaenzt. author ChatGPT
 # - 2026-04-23: Live Status Payload auf running, finished_ok und finished_error fuer Frontend Anzeige umgestellt. author Marcus Schlieper
 # - 2026-04-23: Node Laufzeitmessung in Millisekunden fuer Frontend Anzeige ergaenzt. author Marcus Schlieper
+# - 2026-05-01: Template Resolver fuer input, output, node, global und workflow integriert. author Marcus Schlieper
 
 import copy
 import re
@@ -26,6 +27,7 @@ from typing import Any, Dict, List, Optional
 
 from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_loader import NodeLoader
+from services.template_variable_resolver import resolve_template_text
 
 
 class WorkflowRunner:
@@ -35,23 +37,27 @@ class WorkflowRunner:
         self.websocket_manager = websocket_manager
         self.node_loader = NodeLoader()
 
+    # file: backend/services/workflow_runner.py
+# description: Integration der Template Aufloesung in die Node Ausfuehrung.
+# history:
+# - 2026-05-01: Node Daten werden vor der Ausfuehrung mit der neuen Syntax aufgeloest. author Marcus Schlieper
+# author Marcus Schlieper
+
     def run_workflow(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         a_nodes: List[Dict[str, Any]] = payload.get("nodes", [])
         a_edges: List[Dict[str, Any]] = payload.get("edges", [])
         s_name = str(payload.get("name", "workflow"))
-
+        d_global_values = self._build_global_value_map(payload)
+        d_workflow_values = self._build_workflow_value_map(payload, s_name)
         if not isinstance(a_nodes, list):
             raise ValueError("invalid_nodes")
         if not isinstance(a_edges, list):
             raise ValueError("invalid_edges")
-
         self.node_loader.reload_if_repository_changed()
-
         self.websocket_manager.emit_status(
             "workflow_status",
             {"status": "started", "workflow_name": s_name},
         )
-
         try:
             a_workflow = self._build_workflow(a_nodes, a_edges)
             a_levels = self._build_execution_levels(a_workflow)
@@ -71,61 +77,50 @@ class WorkflowRunner:
                 "error": s_error,
                 "results": [],
             }
-
         a_results: List[Dict[str, Any]] = []
         d_results_by_node_id: Dict[str, Dict[str, Any]] = {}
         d_workflow_map = self._build_workflow_map(a_workflow)
         d_node_enabled: Dict[str, bool] = self._build_initial_enabled_map(a_workflow)
         b_failed = False
         s_error = ""
-
         for a_level in a_levels:
             if b_failed:
                 break
-
             self.node_loader.reload_if_repository_changed()
-
             a_level_to_run = self._filter_enabled_level(a_level, d_node_enabled)
             a_skipped_results = self._build_skipped_results_for_disabled_nodes(
                 a_level,
                 d_node_enabled,
             )
-
             for o_skipped_result in a_skipped_results:
                 a_results.append(o_skipped_result)
                 s_skipped_node_id = str(o_skipped_result.get("node_id", "")).strip()
                 if s_skipped_node_id != "":
                     d_results_by_node_id[s_skipped_node_id] = o_skipped_result
-
             if not a_level_to_run:
                 time.sleep(0.05)
                 continue
-
             a_level_results = self._run_level_parallel(
                 a_level_to_run,
                 d_results_by_node_id,
+                d_global_values,
+                d_workflow_values,
             )
-
             for o_result in a_level_results:
                 a_results.append(o_result)
                 s_node_id = str(o_result.get("node_id", "")).strip()
-
                 if s_node_id != "":
                     d_results_by_node_id[s_node_id] = o_result
-
                 if o_result.get("status") == "error":
                     b_failed = True
                     s_error = str(o_result.get("error", "workflow_node_error"))
                     break
-
                 self._apply_node_routing_result(
                     o_result,
                     d_workflow_map,
                     d_node_enabled,
                 )
-
             time.sleep(0.1)
-
         if b_failed:
             self.websocket_manager.emit_status(
                 "workflow_status",
@@ -142,7 +137,6 @@ class WorkflowRunner:
                 "workflow": a_workflow,
                 "results": a_results,
             }
-
         self.websocket_manager.emit_status(
             "workflow_status",
             {"status": "finished", "workflow_name": s_name},
@@ -153,6 +147,7 @@ class WorkflowRunner:
             "workflow": a_workflow,
             "results": a_results,
         }
+
 
     def _build_workflow(
         self,
@@ -423,15 +418,22 @@ class WorkflowRunner:
 
         return a_results
 
+# file: backend/services/workflow_runner.py
+# description: Erweiterte parallele Ausfuehrung mit Template Kontext.
+# history:
+# - 2026-05-01: Globale Werte und Workflow Werte an Node Ausfuehrung uebergeben. author Marcus Schlieper
+# author Marcus Schlieper
+
     def _run_level_parallel(
         self,
         a_level: List[Dict[str, Any]],
         d_results_by_node_id: Dict[str, Dict[str, Any]],
+        d_global_values: Dict[str, Any],
+        d_workflow_values: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         a_results: List[Dict[str, Any]] = []
         if not a_level:
             return a_results
-
         i_max_workers = max(1, min(8, len(a_level)))
         with ThreadPoolExecutor(max_workers=i_max_workers) as o_executor:
             d_future_map = {
@@ -439,39 +441,41 @@ class WorkflowRunner:
                     self._run_single_workflow_node,
                     o_item,
                     d_results_by_node_id,
+                    d_global_values,
+                    d_workflow_values,
                 ): o_item
                 for o_item in a_level
             }
-
             for o_future in as_completed(d_future_map):
                 o_result = o_future.result()
                 a_results.append(o_result)
-
         return a_results
+
+
+# file: backend/services/workflow_runner.py
+# description: Einzelne Node Ausfuehrung mit Template Syntax Aufloesung.
+# history:
+# - 2026-05-01: Neue Template Syntax vor der Node Ausfuehrung integriert. author Marcus Schlieper
+# author Marcus Schlieper
 
     def _run_single_workflow_node(
         self,
         o_item: Dict[str, Any],
         d_results_by_node_id: Dict[str, Dict[str, Any]],
+        d_global_values: Dict[str, Any],
+        d_workflow_values: Dict[str, Any],
     ) -> Dict[str, Any]:
-        # history:
-        # - 2026-04-23: Live Status fuer Frontend auf running, finished_ok und finished_error umgestellt. author Marcus Schlieper
-        # - 2026-04-23: Laufzeitmessung je Node in Millisekunden ergaenzt. author Marcus Schlieper
-
         o_node = o_item.get("Node", {})
         s_node_id = str(o_item.get("id", "unknown"))
         s_node_type = str(o_item.get("type", "unknown"))
         a_prev_nodes = o_item.get("PrevNodes", [])
         d_target_handles = o_item.get("target_handles", {})
-
         o_input_context = self._build_node_input_context(
             a_prev_nodes,
             d_target_handles,
             d_results_by_node_id,
         )
-
         d_started_at = time.perf_counter()
-
         self.websocket_manager.emit_status(
             "node_status",
             {
@@ -481,22 +485,29 @@ class WorkflowRunner:
                 "i_runtime_ms": 0,
             },
         )
-
         try:
+            o_current_node_context = {
+                "named_inputs": copy.deepcopy(o_input_context.get("named_inputs", {})),
+                "current_result": {},
+            }
+            o_resolved_node = self._resolve_node_templates_in_data(
+                o_node=o_node,
+                o_current_node_context=o_current_node_context,
+                d_results_by_node_id=d_results_by_node_id,
+                d_global_values=d_global_values,
+                d_workflow_values=d_workflow_values,
+            )
             o_context = NodeExecutionContext(
-                node=o_node,
+                node=o_resolved_node,
                 node_item=o_item,
                 input_context=o_input_context,
             )
-
             o_result = self.node_loader.execute_node(
                 s_node_type=s_node_type,
                 o_context=o_context,
             )
             o_result = self._normalize_node_result(o_result, o_item)
-
             i_runtime_ms = max(0, int(round((time.perf_counter() - d_started_at) * 1000)))
-
             self.websocket_manager.emit_status(
                 "node_status",
                 {
@@ -507,7 +518,6 @@ class WorkflowRunner:
                     "result": o_result,
                 },
             )
-
             if s_node_type == "end":
                 self.websocket_manager.emit_status(
                     "workflow_end_result",
@@ -519,7 +529,6 @@ class WorkflowRunner:
                         "result": o_result,
                     },
                 )
-
             return {
                 "node_id": s_node_id,
                 "node_type": s_node_type,
@@ -528,11 +537,9 @@ class WorkflowRunner:
                 "result": o_result,
                 "inputs": o_input_context,
             }
-
         except Exception as o_exc:
             s_error = str(o_exc)
             i_runtime_ms = max(0, int(round((time.perf_counter() - d_started_at) * 1000)))
-
             self.websocket_manager.emit_status(
                 "node_status",
                 {
@@ -543,7 +550,6 @@ class WorkflowRunner:
                     "error": s_error,
                 },
             )
-
             return {
                 "node_id": s_node_id,
                 "node_type": s_node_type,
@@ -798,3 +804,75 @@ class WorkflowRunner:
 
         for s_next_node_id in a_next_nodes:
             d_node_enabled[s_next_node_id] = True
+    # file: backend/services/workflow_runner.py
+# description: Zusatzmethoden fuer Template Syntax im Workflow Runner.
+# history:
+# - 2026-05-01: Resolver Kontext fuer globale Werte und Workflow Werte ergaenzt. author Marcus Schlieper
+# author Marcus Schlieper
+
+    def _build_global_value_map(
+        self,
+        payload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        a_global_variables = payload.get("global_variables", [])
+        d_result: Dict[str, Any] = {}
+
+        if not isinstance(a_global_variables, list):
+            return d_result
+
+        for o_item in a_global_variables:
+            if not isinstance(o_item, dict):
+                continue
+
+            s_name = str(o_item.get("s_name", "")).strip()
+            if s_name == "":
+                continue
+
+            d_result[s_name] = o_item.get("value")
+
+        return d_result
+
+    def _build_workflow_value_map(
+        self,
+        payload: Dict[str, Any],
+        s_name: str,
+    ) -> Dict[str, Any]:
+        return {
+            "name": s_name,
+            "node_count": len(payload.get("nodes", [])) if isinstance(payload.get("nodes", []), list) else 0,
+            "edge_count": len(payload.get("edges", [])) if isinstance(payload.get("edges", []), list) else 0,
+        }
+
+    def _resolve_node_templates_in_data(
+        self,
+        o_node: Dict[str, Any],
+        o_current_node_context: Dict[str, Any],
+        d_results_by_node_id: Dict[str, Dict[str, Any]],
+        d_global_values: Dict[str, Any],
+        d_workflow_values: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        def _walk(o_value: Any) -> Any:
+            if isinstance(o_value, str):
+                return resolve_template_text(
+                    s_template=o_value,
+                    o_current_node_context=o_current_node_context,
+                    d_results_by_node_id=d_results_by_node_id,
+                    d_global_values=d_global_values,
+                    d_workflow_values=d_workflow_values,
+                )
+
+            if isinstance(o_value, list):
+                return [_walk(o_item) for o_item in o_value]
+
+            if isinstance(o_value, dict):
+                return {
+                    s_key: _walk(o_item)
+                    for s_key, o_item in o_value.items()
+                }
+
+            return o_value
+
+        o_node_copy = copy.deepcopy(o_node)
+        o_node_copy["data"] = _walk(o_node_copy.get("data", {}))
+        return o_node_copy
+

@@ -16,7 +16,6 @@ from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import (
     extract_primary_named_input,
-    replace_input_placeholders,
 )
 
 
@@ -44,8 +43,7 @@ class ToolLogWriteNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_target_type = str(o_data.get("s_target_type", "csv")).strip().lower() or "csv"
         s_log_file_path = str(o_data.get("s_log_file_path", "logfile.csv")).strip() or "logfile.csv"
         s_db_path = str(o_data.get("s_db_path", "logfile.db")).strip() or "logfile.db"
@@ -97,6 +95,7 @@ class ToolLogWriteNode(BaseNode):
         return {
             "message": "tool_log_write_ok",
             "output": o_output,
+            "value": o_output,
             "output_meta": {
                 "output_key": "output_main",
                 "output_label": "output",

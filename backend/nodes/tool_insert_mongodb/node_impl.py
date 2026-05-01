@@ -15,7 +15,6 @@ from services.node_runtime.node_execution_context import NodeExecutionContext
 from services.node_runtime.node_interface import BaseNode
 from services.node_runtime.node_utils import (
     extract_primary_named_input,
-    replace_input_placeholders,
 )
 
 
@@ -43,8 +42,7 @@ class ToolInsertMongodbNode(BaseNode):
 
     def execute(self, o_context: NodeExecutionContext) -> Dict[str, Any]:
         o_data = copy.deepcopy(o_context.node.get("data", {}))
-        o_data = replace_input_placeholders(o_data, o_context.input_context)
-
+        
         s_connection_uri = str(o_data.get("s_connection_uri", "")).strip()
         s_database_name = str(o_data.get("s_database_name", "")).strip()
         s_collection_name = str(o_data.get("s_collection_name", "")).strip()
@@ -101,6 +99,7 @@ class ToolInsertMongodbNode(BaseNode):
             return {
                 "message": "tool_insert_mongodb_ok",
                 "output": o_output,
+                "value": o_output,
                 "output_meta": {
                     "output_key": "output_main",
                     "output_label": "output",

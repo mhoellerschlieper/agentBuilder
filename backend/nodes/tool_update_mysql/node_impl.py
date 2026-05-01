@@ -63,6 +63,7 @@ class ToolUpdateMysqlNode(SqlNodeBase):
 
             o_output = {
                 "affected_rows": i_row_count,
+                "value": i_row_count,
                 "database_name": s_database_name,
                 "query_used": s_query,
                 "params_used": a_params,
