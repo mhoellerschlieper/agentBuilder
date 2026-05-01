@@ -595,6 +595,7 @@ export function get_node_wrapper_style(): React.CSSProperties {
     minWidth: "280px",
     maxWidth: "280px",
     width: "280px",
+    
     border: "1px solid #dbe2ea",
     borderRadius: "18px",
     background:

@@ -1976,7 +1976,7 @@ useEffect(() => {
     },
     {
       s_title: "Workflow laden",
-      s_label: "Oeffnen",
+      s_label: "Öffnen",
       Icon: FiFolder,
       on_click: async () => {
         on_load_file_click();
@@ -2024,8 +2024,8 @@ useEffect(() => {
       b_disabled: a_selected_node_ids.length === 0,
     },
     {
-      s_title: "Einfuegen",
-      s_label: "Einfuegen",
+      s_title: "Einfügen",
+      s_label: "Einfügen",
       Icon: FiClipboard,
       on_click: on_paste_click,
     },
@@ -2037,8 +2037,8 @@ useEffect(() => {
       b_disabled: a_selected_node_ids.length === 0,
     },
     {
-      s_title: "Loeschen",
-      s_label: "Loeschen",
+      s_title: "Löschen",
+      s_label: "Löschen",
       Icon: FiTrash2,
       on_click: async () => {
         delete_selected_nodes();
@@ -2046,7 +2046,7 @@ useEffect(() => {
       b_disabled: a_selected_node_ids.length === 0,
     },
     {
-      s_title: "Alles auswaehlen",
+      s_title: "Alles auswählen",
       s_label: "Alle",
       Icon: FiLayers,
       on_click: async () => {

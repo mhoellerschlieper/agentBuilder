@@ -10,7 +10,8 @@
 # venv aktivieren: .\.venv\Scripts\Activate.ps1
 #
 # Syntax:
-# {{input:input_main.results}}
+# {{input:input_main.value}}
+# ###{{input:input_main.results}}
 # {{output:output_main.result}}
 # {{node:http_1.output.output_main.body}}
 # {{node:llm_1.result.output.answer}}

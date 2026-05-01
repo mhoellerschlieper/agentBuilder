@@ -23,6 +23,7 @@ import {
   get_node_body_style,
   get_node_header_style,
   get_node_wrapper_style,
+  DirectRenderRuntimeResult,
 } from "./node_runtime_helpers";
 
 import { BaseNodeStatusBadge } from "./base_node_status_badge";
@@ -31,8 +32,7 @@ export function CommentNode({ id, data }: NodeProps): JSX.Element {
   const o_data = (data as ICommentNodeData) || ({} as ICommentNodeData);
   const { update_node_data } = use_workflow_store();
 
-  const s_text =
-    typeof o_data.s_text === "string" ? o_data.s_text : "";
+  const s_text = typeof o_data.s_text === "string" ? o_data.s_text : "";
 
   const s_color =
     typeof o_data.s_color === "string" && o_data.s_color.trim() !== ""
@@ -44,46 +44,26 @@ export function CommentNode({ id, data }: NodeProps): JSX.Element {
 
   return (
     <div style={get_node_wrapper_style()}>
-      <div style={get_node_header_style("rgba(234, 179, 8, 0.18)", "rgba(234, 179, 8, 0.34)")}>
+      <div
+        style={get_node_header_style(o_data.s_color,
+          "rgba(234, 179, 8, 0.34)"
+        )}
+      >
         <NodeHeaderTitle
           s_kind="comment"
           s_title="Comment"
-          s_subtitle={s_preview}
         />
-        <BaseNodeStatusBadge s_runtime_status={String(data?.s_runtime_status || "")} />
         <NodeDeleteButton node_id={id} />
       </div>
 
-      <div style={get_node_body_style()}>
-        <div style={get_meta_style()}>
-          Visible on canvas
-        </div>
-
-        <NodeDetailsSection s_title="Comment" s_meta="text and color" b_default_open={false}>
-          <label>
-            <span style={get_label_style()}>text</span>
-            <textarea
-              value={s_text}
-              onChange={(o_event) => {
-                update_node_data(id, { s_text: o_event.target.value });
-              }}
-              rows={4}
-              style={{ ...get_input_style(), resize: "vertical" }}
-            />
-          </label>
-
-          <label>
-            <span style={get_label_style()}>color</span>
-            <input
-              value={s_color}
-              onChange={(o_event) => {
-                update_node_data(id, { s_color: o_event.target.value });
-              }}
-              style={get_input_style()}
-            />
-          </label>
-        </NodeDetailsSection>
-      </div>
+      <textarea
+        value={s_text}
+        onChange={(o_event) => {
+          update_node_data(id, { s_text: o_event.target.value });
+        }}
+        rows={4}
+        style={{ ...get_input_style(), resize: "vertical" }}
+      />
     </div>
   );
 }
