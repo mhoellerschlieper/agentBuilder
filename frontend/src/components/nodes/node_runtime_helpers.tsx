@@ -70,6 +70,7 @@ type TActionHandleDefinition = {
 type TNodeKind =
   | "start"
   | "end"
+  | "show"
   | "llm"
   | "classifier"
   | "http"
@@ -1090,6 +1091,14 @@ export function NodeTypeIcon(
           </>
         )}
 
+        {s_kind === "show" && (
+          <>
+            <circle cx="12" cy="12" r="7" {...o_common} fill={o_palette.s_fill} />
+            <path d="M9 9L15 15" {...o_common} />
+            <path d="M15 9L9 15" {...o_common} />
+          </>
+        )}
+
         {s_kind === "http" && (
           <>
             <path d="M4 12H20" {...o_common} />
@@ -1164,6 +1173,7 @@ export function NodeTypeIcon(
         {![
           "start",
           "end",
+          "show",
           "http",
           "code",
           "condition",
@@ -1398,6 +1408,8 @@ export function RenderRuntimeResult(
   const o_data = o_props.o_data || {};
   const o_result = get_runtime_result(o_data);
 
+  console.log("o_data", o_data);
+  console.log("o_result", o_result);
   if (o_result === null || typeof o_result === "undefined") {
     return null;
   }

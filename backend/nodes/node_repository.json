@@ -16,6 +16,13 @@
       "s_version": "1.0.0",
       "b_enabled": true
     },
+        {
+      "s_node_type": "show",
+      "s_module_path": "nodes.show.node_impl",
+      "s_class_name": "ShowNode",
+      "s_version": "1.0.0",
+      "b_enabled": true
+    },
     {
       "s_node_type": "http",
       "s_module_path": "nodes.http.node_impl",
@@ -160,13 +167,6 @@
       "s_node_type": "tool_set_variable",
       "s_module_path": "nodes.tool_set_variable.node_impl",
       "s_class_name": "ToolSetVariableNode",
-      "s_version": "1.0.0",
-      "b_enabled": true
-    },
-    {
-      "s_node_type": "tool_show_variable",
-      "s_module_path": "nodes.tool_show_variable.node_impl",
-      "s_class_name": "ToolShowVariableNode",
       "s_version": "1.0.0",
       "b_enabled": true
     },

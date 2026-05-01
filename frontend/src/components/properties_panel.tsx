@@ -39,6 +39,7 @@ import {
   ICommentNodeData,
   IConditionNodeData,
   IEndNodeData,
+  IShowNodeData,
   IHttpNodeData,
   ILoopForNodeData,
   ILlmNodeData,
@@ -1610,6 +1611,57 @@ function EndProperties({
   );
 }
 
+
+function ShowProperties({
+  o_data,
+  on_change,
+}: {
+  o_data: IShowNodeData;
+  on_change: (o_patch: Record<string, unknown>) => void;
+}): JSX.Element {
+  const s_result =
+    typeof (o_data as Record<string, unknown>).s_result === "string"
+      ? ((o_data as Record<string, unknown>).s_result as string)
+      : typeof o_data.s_query === "string"
+        ? o_data.s_query
+        : "{{input:input_main.value}}";
+
+  return (
+    <>
+      <div style={get_field_style()}>
+        <label style={get_label_style()}>success</label>
+        <select
+          value={String(Boolean(o_data.b_success))}
+          onChange={(o_event) =>
+            on_change({ b_success: o_event.target.value === "true" })
+          }
+          style={get_input_style()}
+          title="success"
+        >
+          <option value="true">true</option>
+          <option value="false">false</option>
+        </select>
+      </div>
+
+      <div style={get_field_style()}>
+        <label style={get_label_style()}>result</label>
+        <textarea
+          value={s_result}
+          onChange={(o_event) =>
+            on_change({
+              s_result: o_event.target.value,
+              s_query: o_event.target.value,
+            })
+          }
+          rows={3}
+          style={get_textarea_style()}
+          title="result"
+        />
+      </div>
+    </>
+  );
+}
+
 export function PropertiesPanel(): JSX.Element {
   const { get_selected_node, update_node_data } = use_workflow_store();
   const { get_tool_schema_by_type } = use_tool_registry_store();
@@ -1814,6 +1866,18 @@ export function PropertiesPanel(): JSX.Element {
         >
           <EndProperties
             o_data={o_node.data as IEndNodeData}
+            on_change={update_patch}
+          />
+        </SectionCard>
+      ) : null}
+
+      {o_node.type === "show" ? (
+        <SectionCard
+          Icon={FiFlag}
+          s_title="Show"
+        >
+          <ShowProperties
+            o_data={o_node.data as IShowNodeData}
             on_change={update_patch}
           />
         </SectionCard>

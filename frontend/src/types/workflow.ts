@@ -22,6 +22,7 @@ export type TNodeType =
   | "classifier"
   | "group"
   | "end"
+  | "show"
   | "comment"
   | `tool_${string}`;
 
@@ -219,6 +220,13 @@ export interface IEndNodeData extends INodeDataBase {
   s_query: string;
 }
 
+
+export interface IShowNodeData extends INodeDataBase {
+  outputs: IEndOutputItem[];
+  b_success: boolean;
+  s_query: string;
+}
+
 export interface ICommentNodeData extends INodeDataBase {
   s_text: string;
   s_color: string;
@@ -235,6 +243,7 @@ export type TWorkflowNodeData =
   | ILlmNodeData
   | IGroupNodeData
   | IEndNodeData
+  | IShowNodeData
   | ICommentNodeData
   | IToolNodeData;
 

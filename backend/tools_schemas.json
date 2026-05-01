@@ -2149,38 +2149,6 @@
             ]
         },
         {
-            "s_type": "tool_show_variable",
-            "s_label": "Show Variable",
-            "s_category": "System",
-            "s_group": "System",
-            "s_subgroup": "Display",
-            "s_icon": "visibility",
-            "s_description": "Zeigt eine Variable aus dem Eingang fuer Anzeige oder Debug Zwecke an.",
-            "s_class_name": "node_tool",
-            "a_input_handles": [
-                "input"
-            ],
-            "a_output_handles": [
-                "output"
-            ],
-            "a_fields": [
-                {
-                    "s_key": "s_title",
-                    "s_label": "Title",
-                    "s_field_type": "text",
-                    "b_required": false,
-                    "s_default": "Output"
-                },
-                {
-                    "s_key": "s_variable",
-                    "s_label": "Variable",
-                    "s_field_type": "text",
-                    "b_required": false,
-                    "s_default": ""
-                }
-            ]
-        },
-        {
             "s_type": "tool_log_write",
             "s_label": "Log Write",
             "s_category": "System",

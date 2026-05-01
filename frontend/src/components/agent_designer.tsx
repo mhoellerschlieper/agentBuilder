@@ -73,6 +73,7 @@ import { ConditionNode } from "./nodes/condition_node";
 import { SwitchNode } from "./nodes/switch_node";
 import { CodeNode } from "./nodes/code_node";
 import { EndNode } from "./nodes/end_node";
+import { ShowNode } from "./nodes/show_node";
 import { GroupNode } from "./nodes/group_node";
 import { HttpNode } from "./nodes/http_node";
 import { LlmNode } from "./nodes/llm_node";
@@ -242,6 +243,7 @@ const o_base_node_types: NodeTypes = {
   loop_for: LoopForNode,
   llm: LlmNode,
   end: EndNode,
+  show: ShowNode,
   comment: CommentNode,
   group: GroupNode,
   tool_node: ToolNode,
@@ -2484,7 +2486,7 @@ useEffect(() => {
             )}
           </div>
         </div>
-
+        <CanvasContextMenu />
         <input
           ref={o_file_input_ref}
           type="file"

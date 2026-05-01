@@ -205,6 +205,7 @@ interface IColorPalette {
 type TNodeKind =
   | "start"
   | "end"
+  | "show"
   | "llm"
   | "classifier"
   | "http"
@@ -1104,6 +1105,9 @@ function get_node_kind_by_type(s_type: string): TNodeKind | null {
   if (s_safe_type === "end") {
     return "end";
   }
+    if (s_safe_type === "show") {
+    return "show";
+  }
   if (s_safe_type === "llm") {
     return "llm";
   }
@@ -1178,6 +1182,14 @@ function get_builtin_standard_nodes(): IToolTreePanelProps["a_standard_tools"] {
       s_type: "end" as TNodeType,
       s_label: "End",
       s_description: "Endpunkt fuer das finale Ergebnis oder den Abschlussstatus.",
+      s_group: "Workflow",
+      s_subgroup: "Control",
+      s_icon: "check-circle",
+    },
+    {
+      s_type: "show" as TNodeType,
+      s_label: "Show",
+      s_description: "Endpunkt fuer ein finale Ergebnis",
       s_group: "Workflow",
       s_subgroup: "Control",
       s_icon: "check-circle",

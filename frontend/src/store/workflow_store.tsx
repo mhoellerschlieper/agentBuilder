@@ -32,6 +32,7 @@ import {
   ICommentNodeData,
   IConditionNodeData,
   IEndNodeData,
+  IShowNodeData,
   IGlobalVariable,
   IHttpNodeData,
   ILoopForNodeData,
@@ -46,10 +47,7 @@ import {
   TWorkflowNodeData,
   TVariableType,
 } from "../types/workflow";
-import {
-  build_tool_node_data,
-  IToolNodeSchema,
-} from "../types/tool_registry";
+import { build_tool_node_data, IToolNodeSchema } from "../types/tool_registry";
 import { IChatMessage } from "../types/chat_flow";
 
 interface IWorkflowSnapshot {
@@ -391,6 +389,18 @@ function get_default_node_data(
     return o_data;
   }
 
+  if (s_type === "show") {
+    const o_data: IShowNodeData = {
+      s_label: "Show",
+      outputs: [],
+      b_success: true,
+      s_query: "",
+      b_details_open: false,
+      b_runtime_result_open: false,
+    } as IShowNodeData;
+    return o_data;
+  }
+
   const o_data: IEndNodeData = {
     s_label: "End",
     outputs: [],
@@ -476,9 +486,8 @@ export function WorkflowProvider({
 }: {
   children: React.ReactNode;
 }): JSX.Element {
-  const [s_workflow_name, set_workflow_name_state] = useState<string>(
-    "demo_workflow"
-  );
+  const [s_workflow_name, set_workflow_name_state] =
+    useState<string>("demo_workflow");
   const [nodes, set_nodes] = useState<TWorkflowNode[]>([]);
   const [edges, set_edges] = useState<TWorkflowEdge[]>([]);
   const [global_variables, set_global_variables] = useState<IGlobalVariable[]>(
@@ -575,9 +584,7 @@ export function WorkflowProvider({
     if (changes.length > 0) {
       push_history();
     }
-    set_edges((a_prev) =>
-      applyEdgeChanges(changes, a_prev) as TWorkflowEdge[]
-    );
+    set_edges((a_prev) => applyEdgeChanges(changes, a_prev) as TWorkflowEdge[]);
   }
 
   function on_connect(connection: Connection): void {
@@ -585,18 +592,19 @@ export function WorkflowProvider({
       return;
     }
     push_history();
-    set_edges((a_prev) =>
-      addEdge(
-        {
-          ...connection,
-          id: create_id("edge"),
-          type: "custom_edge",
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
+    set_edges(
+      (a_prev) =>
+        addEdge(
+          {
+            ...connection,
+            id: create_id("edge"),
+            type: "custom_edge",
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+            },
           },
-        },
-        a_prev
-      ) as TWorkflowEdge[]
+          a_prev
+        ) as TWorkflowEdge[]
     );
   }
 
@@ -860,9 +868,10 @@ export function WorkflowProvider({
     return JSON.stringify(o_export, null, 2);
   }
 
-  function import_workflow(
-    s_json: string
-  ): { success: boolean; error?: string } {
+  function import_workflow(s_json: string): {
+    success: boolean;
+    error?: string;
+  } {
     try {
       const o_data = JSON.parse(s_json) as Record<string, unknown>;
       if (!o_data || typeof o_data !== "object") {
@@ -954,7 +963,9 @@ export function WorkflowProvider({
     }));
   }
 
-  function build_clipboard_from_node_ids(a_node_ids: string[]): IClipboardPayload {
+  function build_clipboard_from_node_ids(
+    a_node_ids: string[]
+  ): IClipboardPayload {
     const o_selected_set = new Set(a_node_ids);
     const a_nodes = nodes
       .filter((o_node) => o_selected_set.has(o_node.id))
@@ -995,9 +1006,10 @@ export function WorkflowProvider({
     return s_json;
   }
 
-  function paste_from_json(
-    s_json: string
-  ): { success: boolean; error?: string } {
+  function paste_from_json(s_json: string): {
+    success: boolean;
+    error?: string;
+  } {
     try {
       const o_raw = JSON.parse(s_json) as unknown;
       const o_payload = sanitize_clipboard_payload(o_raw);
