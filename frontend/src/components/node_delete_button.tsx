@@ -9,17 +9,17 @@ import { MouseEvent } from "react";
 import { use_workflow_store } from "../store/workflow_store";
 
 interface INodeDeleteButtonProps {
-  s_node_id: string;
+  node_id: string;
 }
 
 export function NodeDeleteButton({
-  s_node_id,
+  node_id,
 }: INodeDeleteButtonProps): JSX.Element {
   const { delete_node } = use_workflow_store();
 
   function on_click(o_event: MouseEvent): void {
     o_event.stopPropagation();
-    delete_node(s_node_id);
+    delete_node(node_id);
   }
 
   return (

@@ -281,6 +281,22 @@
       "s_class_name": "ToolDeleteOdbcNode",
       "s_version": "1.0.0",
       "b_enabled": true
-    }
+    },
+    {
+  "s_node_type": "linkedin_list_posts",
+  "s_module_path": "nodes.linkedin_list_posts.node_impl",
+  "s_class_name": "LinkedinListPostsNode",
+  "s_version": "1.0.0",
+  "b_enabled": true
+},
+{
+  "s_node_type": "linkedin_repost_post",
+  "s_module_path": "nodes.linkedin_repost_post.node_impl",
+  "s_class_name": "LinkedinRepostPostNode",
+  "s_version": "1.0.0",
+  "b_enabled": true
+}
+
+
   ]
 }

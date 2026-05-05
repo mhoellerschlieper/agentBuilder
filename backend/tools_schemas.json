@@ -2231,6 +2231,158 @@
                     "s_default": "{}"
                 }
             ]
+        },
+        {
+            "s_type": "linkedin_list_posts",
+            "s_label": "LinkedIn List Posts",
+            "s_category": "Communication",
+            "s_group": "Social Media",
+            "s_subgroup": "LinkedIn",
+            "s_icon": "share",
+            "s_description": "Laedt die letzten eigenen LinkedIn Posts ueber eine API.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_base_url",
+                    "s_label": "Base Url",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": "https://api.linkedin.com"
+                },
+                {
+                    "s_key": "s_list_path",
+                    "s_label": "List Path",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": "/v2/posts"
+                },
+                {
+                    "s_key": "s_access_token",
+                    "s_label": "Access Token",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_author_urn",
+                    "s_label": "Author Urn",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_limit",
+                    "s_label": "Limit",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 5,
+                    "d_min": 1,
+                    "d_max": 50
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 30000,
+                    "d_min": 1000,
+                    "d_max": 300000
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "array",
+                        "object",
+                        "string"
+                    ]
+                }
+            ]
+        },
+        {
+            "s_type": "linkedin_repost_post",
+            "s_label": "LinkedIn Repost Post",
+            "s_category": "Communication",
+            "s_group": "Social Media",
+            "s_subgroup": "LinkedIn",
+            "s_icon": "repeat",
+            "s_description": "Repostet einen bestehenden LinkedIn Post ueber eine API.",
+            "s_class_name": "node_tool",
+            "a_input_handles": [
+                "input"
+            ],
+            "a_output_handles": [
+                "output"
+            ],
+            "a_fields": [
+                {
+                    "s_key": "s_base_url",
+                    "s_label": "Base Url",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": "https://api.linkedin.com"
+                },
+                {
+                    "s_key": "s_repost_path",
+                    "s_label": "Repost Path",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": "/v2/posts"
+                },
+                {
+                    "s_key": "s_access_token",
+                    "s_label": "Access Token",
+                    "s_field_type": "password",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_author_urn",
+                    "s_label": "Author Urn",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_post_id",
+                    "s_label": "Post Id",
+                    "s_field_type": "text",
+                    "b_required": true,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "s_comment",
+                    "s_label": "Comment",
+                    "s_field_type": "textarea",
+                    "b_required": false,
+                    "s_default": ""
+                },
+                {
+                    "s_key": "i_timeout",
+                    "s_label": "Timeout",
+                    "s_field_type": "number",
+                    "b_required": true,
+                    "d_default": 30000,
+                    "d_min": 1000,
+                    "d_max": 300000
+                },
+                {
+                    "s_key": "s_result_variable",
+                    "s_label": "Result Variable",
+                    "s_field_type": "variable_select",
+                    "a_allowed_types": [
+                        "object",
+                        "string"
+                    ]
+                }
+            ]
         }
     ]
 }
